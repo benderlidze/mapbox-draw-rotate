@@ -53,8 +53,8 @@
         const map = new mapboxgl.Map({
             container: 'map', // container ID
             // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
-            style: 'mapbox://styles/mapbox/satellite-v9', // style URL
-            center: { lng: -73.72293956121996, lat: 40.66386852588303 }, // starting position [lng, lat]
+            style: 'mapbox://styles/mapbox/light-v9', // style URL
+            center: { lng: -2.596489317747442, lat: 51.41564568411687 }, // starting position [lng, lat]
             zoom: 19 // starting zoom
         });
 
@@ -89,7 +89,7 @@
         test.addEventListener("click", () => {
 
             map.setZoom(19)//projection zoom
-            const proj = [{ "x": 294.00000123303346, "y": 465.0000000790406 }, { "x": 294.00000123303346, "y": 558.0000003319706 }, { "x": 514.0000009959116, "y": 558.0000003319706 }, { "x": 515.0000008536385, "y": 463.0000003161624 }, { "x": 438.0000008062142, "y": 465.0000000790406 }, { "x": 440.00000101171975, "y": 351.00000025292996 }, { "x": 343.0000008062142, "y": 349.9999999367675 }, { "x": 294.00000123303346, "y": 465.0000000790406 }]
+            const proj = [{"x":277.6560297612544,"y":335.86451180158457},{"x":60.65603009322492,"y":603.8645117383521},{"x":631.6560304093873,"y":1069.8645120545145},{"x":851.6560301880736,"y":798.8645120228982},{"x":277.6560297612544,"y":335.86451180158457}]
 
             const polyCoordinates = proj.map(d => {
                 return map.unproject(d).toArray()
