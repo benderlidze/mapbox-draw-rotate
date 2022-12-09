@@ -57,6 +57,17 @@
             background-color: rgb(148, 148, 148);
         }
 
+        #polygon-info {
+            bottom: 20px;
+            left: 20px;
+            position: absolute;
+            z-index: 10;
+            background-color: white;
+            border-radius: 10px;
+            display: flex;
+            padding: 10px;
+        }
+
         /*============--------------SWITCHER-----------------=========================*/
         .switch {
             position: relative;
@@ -152,13 +163,14 @@
     </div>
 
     <div id="lots"></div>
+    <div id="polygon-info"></div>
     <div id="map"></div>
     <script>
         const satelliteLayer = document.getElementById('satelliteLayer');
-
         const drawButton = document.getElementById("draw");
         const rotateButton = document.getElementById("rotate");
         const lotsDiv = document.getElementById("lots");
+        const polygonInfo = document.getElementById("polygon-info");
 
         const lots = [
             {
@@ -225,22 +237,7 @@
             draw.changeMode('scaleRotateMode', ScaleRotateModeProps);
         })
 
-
-        // aldi.addEventListener("click", () => {
-
-        //     map.setZoom(19)//projection zoom
-        //     const proj = [{ "x": 277.6560297612544, "y": 335.86451180158457 }, { "x": 60.65603009322492, "y": 603.8645117383521 }, { "x": 631.6560304093873, "y": 1069.8645120545145 }, { "x": 851.6560301880736, "y": 798.8645120228982 }, { "x": 277.6560297612544, "y": 335.86451180158457 }]
-
-        //     const polyCoordinates = proj.map(d => {
-        //         return map.unproject(d).toArray()
-        //     })
-        //     console.log('polyCoordinates', polyCoordinates);
-        //     const polygon = turf.polygon([polyCoordinates])
-        //     console.log('polygon', polygon);
-
-        //     map.getSource("maine").setData((polygon))
-
-        // })
+        map.on('draw.selectionchange', updateArea);
 
         map.on('load', () => {
 
@@ -276,12 +273,11 @@
             }, 'satellite');
 
             map.on('click', "maine", (e) => {
-
                 // const features = map.queryRenderedFeatures(e.point, ["maine"]);
                 // console.log('features', features);
-
                 draw.add(e.features[0])
                 map.getSource("maine").setData((turf.featureCollection([])))
+
 
             })
             // map.on('mouseenter', 'parking', () => {
@@ -292,11 +288,26 @@
             // map.on('mouseleave', 'parking', () => {
             //     map.getCanvas().style.cursor = '';
             // });
-
         })
 
-        function placeLotOnMap(data) {
+        function updateArea() {
+            const geometry = draw.getSelected()
+            console.log('geometry', geometry);
 
+            const area = turf.area(geometry);
+
+            console.log('area', area);
+
+            const length = turf.length(geometry, { units: 'kilometers' });
+            console.log('length', length);
+
+            const data = `
+                <span>Area: ${area.toFixed(2)} sq.meters, Length: ${(length * 1000).toFixed(2)} meters</span>
+            `
+            polygonInfo.innerHTML = `${data}`
+        }
+
+        function placeLotOnMap(data) {
             map.setZoom(19)//projection zoom
             const proj = data.geometry
             const polyCoordinates = proj.map(d => {
@@ -319,13 +330,13 @@
             })
         }
 
-        function updateArea(e) {
-            const data = draw.getAll();
-            console.log('data', ...data.features[0].geometry.coordinates);
-            const square = data.features[0].geometry.coordinates[0]
-            square.pop()
-            map.getSource("parking").setCoordinates(square)
-        }
+        // function updateArea(e) {
+        //     const data = draw.getAll();
+        //     console.log('data', ...data.features[0].geometry.coordinates);
+        //     const square = data.features[0].geometry.coordinates[0]
+        //     square.pop()
+        //     map.getSource("parking").setCoordinates(square)
+        // }
 
         function createLotButton(data, clickEvent) {
 
