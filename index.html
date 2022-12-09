@@ -32,22 +32,152 @@
             position: absolute;
             z-index: 10;
         }
+
+        #lots {
+            top: 80px;
+            left: 20px;
+            position: absolute;
+            z-index: 10;
+            background-color: white;
+            border-radius: 10px;
+            display: flex;
+            padding: 10px;
+            flex-direction: column;
+        }
+
+        .lot-button {
+            cursor: pointer;
+            background-color: #ccc;
+            padding: 5px;
+            margin: 5px;
+            border-radius: 5px;
+        }
+
+        .lot-button:hover {
+            background-color: rgb(148, 148, 148);
+        }
+
+        /*============--------------SWITCHER-----------------=========================*/
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 22px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .switch>.slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            -webkit-transition: 0.4s;
+            transition: 0.4s;
+        }
+
+        .switch>.slider:before {
+            position: absolute;
+            content: "";
+            height: 15px;
+            width: 15px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            -webkit-transition: 0.4s;
+            transition: 0.4s;
+        }
+
+        .switch>input:checked+.slider {
+            background-color: #004cff;
+        }
+
+        .switch>input:focus+.slider {
+            box-shadow: 0 0 1px #004cff;
+        }
+
+        .switch>input:checked+.slider:before {
+            -webkit-transform: translateX(26px);
+            -ms-transform: translateX(26px);
+            transform: translateX(26px);
+        }
+
+        /* Rounded sliders */
+        .slider.round {
+            border-radius: 34px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+
+        .switch-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 5px;
+        }
+
+        .switch-item>label {
+            margin-right: 10px;
+        }
+
+        .roundSlider {
+            height: 10px;
+        }
     </style>
 </head>
 
 <body>
 
     <div class="draw">
+        <!-- <div class="switch-item">
+            <div class="item-header">Satellite view</div>
+
+            <label class="switch">
+                <input type="checkbox" id="satelliteLayer">
+                <span class="slider round"></span>
+            </label>
+        </div> -->
+
         <button id="draw">Draw</button>
         <button id="rotate">Rotate</button>
-        <button id="test">Set geometry</button>
     </div>
+
+    <div id="lots"></div>
     <div id="map"></div>
     <script>
+        const satelliteLayer = document.getElementById('satelliteLayer');
 
         const drawButton = document.getElementById("draw");
         const rotateButton = document.getElementById("rotate");
-        const test = document.getElementById("test");
+        const lotsDiv = document.getElementById("lots");
+
+        const lots = [
+            {
+                name: "Parking lot 5",
+                geometry: [{ "x": 153.01113519320307, "y": 791.0100046437936 }, { "x": 190.51113519320307, "y": 751.3850046279856 }, { "x": 289.0111351932031, "y": 843.0100046279856 }, { "x": 253.51113519320307, "y": 883.0100046279856 }, { "x": 153.01113519320307, "y": 791.0100046437936 }]
+            },
+            {
+                name: "Parking lot 20",
+                geometry: [{ "x": 43.17042169617853, "y": 799.806031253541 }, { "x": 114.04542169617854, "y": 724.431031253541 }, { "x": 313.17042169617855, "y": 905.431031253541 }, { "x": 240.17042169617852, "y": 982.9310312693491 }, { "x": 43.17042169617853, "y": 799.806031253541 }]
+            },
+            {
+                name: "Aldi - 20,000 sq.ft",
+                geometry: [{ "x": 277.6560297612544, "y": 335.86451180158457 }, { "x": 60.65603009322492, "y": 603.8645117383521 }, { "x": 631.6560304093873, "y": 1069.8645120545145 }, { "x": 851.6560301880736, "y": 798.8645120228982 }, { "x": 277.6560297612544, "y": 335.86451180158457 }]
+            }
+        ]
+
+        lots.forEach(d => {
+            lotsDiv.appendChild(createLotButton(d, () => placeLotOnMap(d)))
+        })
 
         mapboxgl.accessToken = 'pk.eyJ1Ijoic2VyZ2JlciIsImEiOiJja3dwOWgzeGQwYWdyMm9xb2pkMDFvYmNuIn0.H9AJ_NLmDNYMed6dvu_Q0A';
         const map = new mapboxgl.Map({
@@ -79,6 +209,14 @@
             canSelectFeatures: true,
         }
 
+        satelliteLayer && satelliteLayer.addEventListener("input", function () {
+            if (satelliteLayer.checked) {
+                map.setLayoutProperty('satellite', 'visibility', 'visible');
+            } else {
+                map.setLayoutProperty('satellite', 'visibility', 'none');
+            }
+        });
+
 
         drawButton.addEventListener("click", () => {
             draw.changeMode('draw_polygon');
@@ -86,63 +224,34 @@
         rotateButton.addEventListener("click", () => {
             draw.changeMode('scaleRotateMode', ScaleRotateModeProps);
         })
-        test.addEventListener("click", () => {
 
-            map.setZoom(19)//projection zoom
-            const proj = [{"x":277.6560297612544,"y":335.86451180158457},{"x":60.65603009322492,"y":603.8645117383521},{"x":631.6560304093873,"y":1069.8645120545145},{"x":851.6560301880736,"y":798.8645120228982},{"x":277.6560297612544,"y":335.86451180158457}]
 
-            const polyCoordinates = proj.map(d => {
-                return map.unproject(d).toArray()
-            })
-            console.log('polyCoordinates', polyCoordinates);
-            const polygon = turf.polygon([polyCoordinates])
-            console.log('polygon', polygon);
+        // aldi.addEventListener("click", () => {
 
-            map.getSource("maine").setData((polygon))
-            // const poly = {
-            //     "type": "Feature",
-            //     "properties": {},
-            //     "geometry": {
-            //         "coordinates": [
-            //             [
-            //                 [
-            //                     6.638501146414939,
-            //                     0.10866818535053824
-            //                 ],
-            //                 [
-            //                     6.638501146414939,
-            //                     0.10860431560567463
-            //                 ],
-            //                 [
-            //                     6.6385632993425645,
-            //                     0.10860431560567463
-            //                 ],
-            //                 [
-            //                     6.6385632993425645,
-            //                     0.10866818535053824
-            //                 ],
-            //                 [
-            //                     6.638501146414939,
-            //                     0.10866818535053824
-            //                 ]
-            //             ]
-            //         ],
-            //         "type": "Polygon"
-            //     }
-            // }
+        //     map.setZoom(19)//projection zoom
+        //     const proj = [{ "x": 277.6560297612544, "y": 335.86451180158457 }, { "x": 60.65603009322492, "y": 603.8645117383521 }, { "x": 631.6560304093873, "y": 1069.8645120545145 }, { "x": 851.6560301880736, "y": 798.8645120228982 }, { "x": 277.6560297612544, "y": 335.86451180158457 }]
 
-            // const center = map.getCenter().toArray()
-            // const from = turf.centerOfMass(poly);
-            // const to = turf.point(center);
-            // const options = { units: 'kilometers' };
-            // const distance = turf.rhumbDistance(from, to, options);
-            // const bearing = turf.rhumbBearing(from, to);
-            // const newPoly = turf.transformTranslate(poly, distance, bearing);
-            // map.getSource("maine").setData((newPoly))
-        })
+        //     const polyCoordinates = proj.map(d => {
+        //         return map.unproject(d).toArray()
+        //     })
+        //     console.log('polyCoordinates', polyCoordinates);
+        //     const polygon = turf.polygon([polyCoordinates])
+        //     console.log('polygon', polygon);
+
+        //     map.getSource("maine").setData((polygon))
+
+        // })
 
         map.on('load', () => {
 
+            map.addLayer({
+                id: 'satellite',
+                source: { "type": "raster", "url": "mapbox://mapbox.satellite", "tileSize": 256 },
+                type: "raster",
+                layout: {
+                    visibility: 'none'
+                }
+            });
 
             map.loadImage("img/rotate.png", function (error, image) {
                 if (error) throw error;
@@ -164,11 +273,12 @@
                     'fill-color': '#0080ff', // blue color fill
                     'fill-opacity': 0.5
                 }
-            });
+            }, 'satellite');
 
             map.on('click', "maine", (e) => {
 
-                // const features = map.queryRenderedFeatures(e.point);
+                // const features = map.queryRenderedFeatures(e.point, ["maine"]);
+                // console.log('features', features);
 
                 draw.add(e.features[0])
                 map.getSource("maine").setData((turf.featureCollection([])))
@@ -185,14 +295,28 @@
 
         })
 
-        function getGeometry() {
-            const g = draw.getSelected();
-            const coords = g.features[0].geometry.coordinates[0]
-            const projections = coords.map(d => {
-                console.log('d', d);
-                return map.project(d)
+        function placeLotOnMap(data) {
+
+            map.setZoom(19)//projection zoom
+            const proj = data.geometry
+            const polyCoordinates = proj.map(d => {
+                return map.unproject(d).toArray()
             })
-            console.log('pro', JSON.stringify(projections));
+            const polygon = turf.polygon([polyCoordinates])
+            map.getSource("maine").setData((polygon))
+        }
+
+        function getGeometry() {
+            map.setZoom(19)
+            map.once("idle", () => {
+                const g = draw.getSelected();
+                const coords = g.features[0].geometry.coordinates[0]
+                const projections = coords.map(d => {
+                    console.log('d', d);
+                    return map.project(d)
+                })
+                console.log('pro', JSON.stringify(projections));
+            })
         }
 
         function updateArea(e) {
@@ -201,6 +325,17 @@
             const square = data.features[0].geometry.coordinates[0]
             square.pop()
             map.getSource("parking").setCoordinates(square)
+        }
+
+        function createLotButton(data, clickEvent) {
+
+            console.log('data', data);
+            const div = document.createElement('div')
+            div.addEventListener("click", () => typeof clickEvent === 'function' && clickEvent())
+            div.className = "lot-button"
+            div.innerText = data.name
+
+            return div
         }
     </script>
 
