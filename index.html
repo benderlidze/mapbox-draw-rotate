@@ -40,12 +40,14 @@
     <div class="draw">
         <button id="draw">Draw</button>
         <button id="rotate">Rotate</button>
+        <button id="test">Set geometry</button>
     </div>
     <div id="map"></div>
     <script>
 
         const drawButton = document.getElementById("draw");
         const rotateButton = document.getElementById("rotate");
+        const test = document.getElementById("test");
 
         mapboxgl.accessToken = 'pk.eyJ1Ijoic2VyZ2JlciIsImEiOiJja3dwOWgzeGQwYWdyMm9xb2pkMDFvYmNuIn0.H9AJ_NLmDNYMed6dvu_Q0A';
         const map = new mapboxgl.Map({
@@ -77,31 +79,66 @@
             canSelectFeatures: true,
         }
 
-        // // when mode drawing should be activated
-        // draw.changeMode('scaleRotateMode', {
-        //     canScale: true,
-        //     canRotate: true, // only rotation enabled
-        //     canTrash: false, // disable feature delete
-
-        //     rotatePivot: ScaleRotateMode.SRCenter.Center, // rotate around center
-        //     scaleCenter: ScaleRotateMode.SRCenter.Opposite, // scale around opposite vertex
-
-        //     singleRotationPoint: true, // only one rotation point
-        //     rotationPointRadius: 1.2, // offset rotation point
-
-        //     canSelectFeatures: true,
-        // });
-
-        // map.on('draw.create', updateArea);
-        // map.on('draw.delete', updateArea);
-        // map.on('draw.update', updateArea);
-
 
         drawButton.addEventListener("click", () => {
             draw.changeMode('draw_polygon');
         })
         rotateButton.addEventListener("click", () => {
             draw.changeMode('scaleRotateMode', ScaleRotateModeProps);
+        })
+        test.addEventListener("click", () => {
+
+            map.setZoom(19)//projection zoom
+            const proj = [{ "x": 294.00000123303346, "y": 465.0000000790406 }, { "x": 294.00000123303346, "y": 558.0000003319706 }, { "x": 514.0000009959116, "y": 558.0000003319706 }, { "x": 515.0000008536385, "y": 463.0000003161624 }, { "x": 438.0000008062142, "y": 465.0000000790406 }, { "x": 440.00000101171975, "y": 351.00000025292996 }, { "x": 343.0000008062142, "y": 349.9999999367675 }, { "x": 294.00000123303346, "y": 465.0000000790406 }]
+
+            const polyCoordinates = proj.map(d => {
+                return map.unproject(d).toArray()
+            })
+            console.log('polyCoordinates', polyCoordinates);
+            const polygon = turf.polygon([polyCoordinates])
+            console.log('polygon', polygon);
+
+            map.getSource("maine").setData((polygon))
+            // const poly = {
+            //     "type": "Feature",
+            //     "properties": {},
+            //     "geometry": {
+            //         "coordinates": [
+            //             [
+            //                 [
+            //                     6.638501146414939,
+            //                     0.10866818535053824
+            //                 ],
+            //                 [
+            //                     6.638501146414939,
+            //                     0.10860431560567463
+            //                 ],
+            //                 [
+            //                     6.6385632993425645,
+            //                     0.10860431560567463
+            //                 ],
+            //                 [
+            //                     6.6385632993425645,
+            //                     0.10866818535053824
+            //                 ],
+            //                 [
+            //                     6.638501146414939,
+            //                     0.10866818535053824
+            //                 ]
+            //             ]
+            //         ],
+            //         "type": "Polygon"
+            //     }
+            // }
+
+            // const center = map.getCenter().toArray()
+            // const from = turf.centerOfMass(poly);
+            // const to = turf.point(center);
+            // const options = { units: 'kilometers' };
+            // const distance = turf.rhumbDistance(from, to, options);
+            // const bearing = turf.rhumbBearing(from, to);
+            // const newPoly = turf.transformTranslate(poly, distance, bearing);
+            // map.getSource("maine").setData((newPoly))
         })
 
         map.on('load', () => {
@@ -112,45 +149,51 @@
                 map.addImage('rotate', image);
             });
 
-            const coords = [
-                [-73.72272957361969, 40.66389640678605],
-                [-73.72253486559555, 40.66389640678605],
-                [-73.72253443766567, 40.66373150775527],
-                [-73.72272957361969, 40.66373150775527],
-
-            ];
-
-            map.addSource('parking', {
-                'type': 'image',
-                'url': 'parking-lot.png',
-                'coordinates': coords
+            map.addSource('maine', {
+                'type': 'geojson',
+                'data': turf.featureCollection([])
             });
+
+            // Add a new layer to visualize the polygon.
             map.addLayer({
-                'id': 'parking',
-                'type': 'raster',
-                'source': 'parking',
+                'id': 'maine',
+                'type': 'fill',
+                'source': 'maine', // reference the data source
+                'layout': {},
                 'paint': {
-                    'raster-fade-duration': 0,
-                    'raster-opacity': 0.95
+                    'fill-color': '#0080ff', // blue color fill
+                    'fill-opacity': 0.5
                 }
             });
 
-            map.on('click', (e) => {
-                console.log('e', e);
-                const features = map.queryRenderedFeatures(e.point);
-                console.log('relatedCounties', features);
-            })
-            map.on('mouseenter', 'parking', () => {
-                map.getCanvas().style.cursor = 'pointer';
-            });
+            map.on('click', "maine", (e) => {
 
-            // Change it back to a pointer when it leaves.
-            map.on('mouseleave', 'parking', () => {
-                map.getCanvas().style.cursor = '';
-            });
+                // const features = map.queryRenderedFeatures(e.point);
+
+                draw.add(e.features[0])
+                map.getSource("maine").setData((turf.featureCollection([])))
+
+            })
+            // map.on('mouseenter', 'parking', () => {
+            //     map.getCanvas().style.cursor = 'pointer';
+            // });
+
+            // // Change it back to a pointer when it leaves.
+            // map.on('mouseleave', 'parking', () => {
+            //     map.getCanvas().style.cursor = '';
+            // });
 
         })
 
+        function getGeometry() {
+            const g = draw.getSelected();
+            const coords = g.features[0].geometry.coordinates[0]
+            const projections = coords.map(d => {
+                console.log('d', d);
+                return map.project(d)
+            })
+            console.log('pro', JSON.stringify(projections));
+        }
 
         function updateArea(e) {
             const data = draw.getAll();
