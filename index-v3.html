@@ -11,6 +11,8 @@
     <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.js"></script>
     <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.css"
         type="text/css">
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+
     <script src="js/rotate_mod.js"></script>
 
     <link href="css/toggle.css" rel="stylesheet">
@@ -124,6 +126,10 @@
         const polygonInfo = document.getElementById("polygon-info");
         const sectorsDiv = document.getElementById("sectors");
 
+        const mainData = {
+            layers: new Map()
+        }
+
         const drawLlayers = ['gl-draw-polygon-fill-inactive.cold', 'gl-draw-polygon-fill-active.cold', 'gl-draw-overlay-polygon-fill-inactive.cold', 'gl-draw-overlay-polygon-fill-active.cold', 'gl-draw-polygon-stroke-inactive.cold', 'gl-draw-polygon-stroke-active.cold', 'gl-draw-polygon-midpoint.cold', 'gl-draw-line-inactive.cold', 'gl-draw-line-active.cold', 'gl-draw-polygon-and-line-vertex-stroke-inactive.cold', 'gl-draw-polygon-and-line-vertex-inactive.cold', 'gl-draw-polygon-and-line-vertex-scale-icon.cold', 'gl-draw-point-point-stroke-inactive.cold', 'gl-draw-point-inactive.cold', 'gl-draw-point-stroke-active.cold', 'gl-draw-point-active.cold', 'gl-draw-polygon-fill-static.cold', 'gl-draw-polygon-stroke-static.cold', 'gl-draw-line-static.cold', 'gl-draw-point-static.cold', 'gl-draw-line-rotate-point.cold', 'gl-draw-polygon-rotate-point-stroke.cold', 'gl-draw-polygon-rotate-point.cold', 'gl-draw-polygon-rotate-point-icon.cold', 'gl-draw-polygon-fill-inactive.hot', 'gl-draw-polygon-fill-active.hot', 'gl-draw-overlay-polygon-fill-inactive.hot', 'gl-draw-overlay-polygon-fill-active.hot', 'gl-draw-polygon-stroke-inactive.hot', 'gl-draw-polygon-stroke-active.hot', 'gl-draw-polygon-midpoint.hot', 'gl-draw-line-inactive.hot', 'gl-draw-line-active.hot', 'gl-draw-polygon-and-line-vertex-stroke-inactive.hot', 'gl-draw-polygon-and-line-vertex-inactive.hot', 'gl-draw-polygon-and-line-vertex-scale-icon.hot', 'gl-draw-point-point-stroke-inactive.hot', 'gl-draw-point-inactive.hot', 'gl-draw-point-stroke-active.hot', 'gl-draw-point-active.hot', 'gl-draw-polygon-fill-static.hot', 'gl-draw-polygon-stroke-static.hot', 'gl-draw-line-static.hot', 'gl-draw-point-static.hot', 'gl-draw-line-rotate-point.hot', 'gl-draw-polygon-rotate-point-stroke.hot', 'gl-draw-polygon-rotate-point.hot', 'gl-draw-polygon-rotate-point-icon.hot']
 
         const lots = [
@@ -135,15 +141,20 @@
             {
                 name: "Parking lot 20",
                 geometry: [{ "x": 43.17042169617853, "y": 799.806031253541 }, { "x": 114.04542169617854, "y": 724.431031253541 }, { "x": 313.17042169617855, "y": 905.431031253541 }, { "x": 240.17042169617852, "y": 982.9310312693491 }, { "x": 43.17042169617853, "y": 799.806031253541 }],
-
+                fillColor: "white",
+                opacity: 0.9
             },
             {
                 name: "Foodstore - 20,000 sq.ft",
-                geometry: [{ "x": 277.6560297612544, "y": 335.86451180158457 }, { "x": 60.65603009322492, "y": 603.8645117383521 }, { "x": 631.6560304093873, "y": 1069.8645120545145 }, { "x": 851.6560301880736, "y": 798.8645120228982 }, { "x": 277.6560297612544, "y": 335.86451180158457 }]
+                geometry: [{ "x": 277.6560297612544, "y": 335.86451180158457 }, { "x": 60.65603009322492, "y": 603.8645117383521 }, { "x": 631.6560304093873, "y": 1069.8645120545145 }, { "x": 851.6560301880736, "y": 798.8645120228982 }, { "x": 277.6560297612544, "y": 335.86451180158457 }],
+                fillColor: "white",
+                opacity: 0.9
             },
             {
                 name: "Fast Food Drive-thru",
-                geometry: [{ "x": 373.0155377707868, "y": 606.2702842856652 }, { "x": 370.20672431951726, "y": 736.8801081572688 }, { "x": 666.0684043016806, "y": 746.2428196035373 }, { "x": 671.6566251899504, "y": 615.6329957951662 }, { "x": 373.0155377707868, "y": 606.2702842856652 }]
+                geometry: [{ "x": 373.0155377707868, "y": 606.2702842856652 }, { "x": 370.20672431951726, "y": 736.8801081572688 }, { "x": 666.0684043016806, "y": 746.2428196035373 }, { "x": 671.6566251899504, "y": 615.6329957951662 }, { "x": 373.0155377707868, "y": 606.2702842856652 }],
+                fillColor: "red",
+                opacity: 0.9
             }
         ]
 
@@ -240,39 +251,71 @@
             });
 
 
-            const coords = [
-                [-73.72272957361969, 40.66389640678605],
-                [-73.72253486559555, 40.66389640678605],
-                [-73.72253443766567, 40.66373150775527],
-                [-73.72272957361969, 40.66373150775527],
-            ];
-            map.addSource('parking', {
-                'type': 'image',
-                'url': 'img/5-parking-lot.png',
-                'coordinates': coords
-            });
-            map.addLayer({
-                'id': 'parking',
-                'type': 'raster',
-                'source': 'parking',
-                'paint': {
-                    'raster-fade-duration': 0,
-                    'raster-opacity': 0.95
-                }
-            });
+            // const coords = [
+            //     [-73.72272957361969, 40.66389640678605],
+            //     [-73.72253486559555, 40.66389640678605],
+            //     [-73.72253443766567, 40.66373150775527],
+            //     [-73.72272957361969, 40.66373150775527],
+            // ];
+            // map.addSource('parking', {
+            //     'type': 'image',
+            //     'url': 'img/5-parking-lot.png',
+            //     'coordinates': coords
+            // });
+            // map.addLayer({
+            //     'id': 'parking',
+            //     'type': 'raster',
+            //     'source': 'parking',
+            //     'paint': {
+            //         'raster-fade-duration': 0,
+            //         'raster-opacity': 0.95
+            //     }
+            // });
 
-            map.on('click', "maine", (e) => {
-                draw.add(e.features[0])
-                map.getSource("maine").setData((turf.featureCollection([])))
+            let editMode = false;
+
+            map.on('click', (e) => {
+                if (editMode) return;
+                const features = map.queryRenderedFeatures(e.point);
+                //get the first layer geom_
+                const layers = features.filter(d => d.layer.id.includes("geom_"))
+                console.log('layers', layers);
+                if (layers.length === 0) return;
+
+                const layer = layers[0]
+                draw.add(layer)
+
+                editMode = true
             })
-            // map.on('mouseenter', 'parking', () => {
-            //     map.getCanvas().style.cursor = 'pointer';
-            // });
 
-            // // Change it back to a pointer when it leaves.
-            // map.on('mouseleave', 'parking', () => {
-            //     map.getCanvas().style.cursor = '';
-            // });
+
+
+            //debounce for rotation 
+            const debouncedUpdateEvent = _.debounce((e) => {
+
+                const geometry = e.features[0]
+                if (!geometry) return;
+
+                console.log('geometry', geometry.geometry.coordinates[0]);
+                const id = geometry.properties.gid
+                //update coordinates of the object 
+                map.getSource("geom_" + id).setData(geometry)
+                map.getSource("image_" + id) && map.getSource("image_" + id).setCoordinates(geometry.geometry.coordinates[0])
+
+                editMode = false //SET the ability to select it again 
+                draw.deleteAll()
+
+            }, 1000)
+
+            map.on("draw.update", (e) => {
+                debouncedUpdateEvent(e)
+            })
+            map.on("draw.selectionchange", (e) => {
+                console.log('draw.selectionchange',);
+            })
+            map.on("draw.modechange", (e) => {
+                console.log('draw.modechange',);
+            })
 
         })
 
@@ -291,16 +334,20 @@
         }
 
         function placeLotOnMap(data) {
+            console.log('data', data);
+
             map.setZoom(19)//projection zoom
             const proj = data.geometry
             const polyCoordinates = proj.map(d => {
                 return map.unproject(d).toArray()
             })
-            const polygon = turf.polygon([polyCoordinates])
 
             const layerId = generateId()
             const geometryLayer = 'geom_' + layerId
-            
+            const imageLayer = 'image_' + layerId
+
+            const polygon = turf.polygon([polyCoordinates], { gid: layerId })
+
             map.addSource(geometryLayer, {
                 'type': 'geojson',
                 'data': polygon
@@ -313,28 +360,34 @@
                 'source': geometryLayer, // reference the data source
                 'layout': {},
                 'paint': {
-                    'fill-color': '#0080ff', // blue color fill
-                    'fill-opacity': 0.5
+                    'fill-color': data.fillColor || '#0080ff', // blue color fill
+                    'fill-opacity': data.opacity || 0.5
                 }
             });
 
-
             if (data.hasOwnProperty("backgroundImage")) {
-                map.addSource('parking_', {
+
+                map.addSource(imageLayer, {
                     'type': 'image',
                     'url': 'img/5-parking-lot.png',
                     'coordinates': polyCoordinates.splice(0, 4)
                 });
                 map.addLayer({
-                    'id': 'parking_',
+                    'id': imageLayer,
                     'type': 'raster',
-                    'source': 'parking_',
+                    'source': imageLayer,
                     'paint': {
                         'raster-fade-duration': 0,
                         'raster-opacity': 0.95
                     }
                 });
+
             }
+
+            mainData.layers.set(layerId, {
+                geometryLayer,
+                imageLayer
+            })
         }
 
         function generateId() {
