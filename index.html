@@ -11,7 +11,7 @@
     <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.js"></script>
     <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.css"
         type="text/css">
-    <script src="index.js"></script>
+    <script src="js/rotate_mod.js"></script>
 
     <style>
         body {
@@ -149,14 +149,14 @@
 <body>
 
     <div class="draw">
-        <!-- <div class="switch-item">
+        <div class="switch-item">
             <div class="item-header">Satellite view</div>
 
             <label class="switch">
                 <input type="checkbox" id="satelliteLayer">
                 <span class="slider round"></span>
             </label>
-        </div> -->
+        </div>
 
         <button id="draw">Draw</button>
         <button id="rotate">Rotate</button>
@@ -241,14 +241,58 @@
 
         map.on('load', () => {
 
+
+
+            map.addSource("hillshade", {
+                type: "raster",
+                tiles: [
+                    "https://khms0.googleapis.com/kh?v=937&hl=en&x={x}&y={y}&z={z}"
+                ]
+            });
+
+            map.addLayer({
+                id: "satellite",
+                type: "raster",
+                source: "hillshade"
+            });
+
             map.addLayer({
                 id: 'satellite',
-                source: { "type": "raster", "url": "mapbox://mapbox.satellite", "tileSize": 256 },
+                //source: { "type": "raster", "url": "mapbox://mapbox.satellite", "tileSize": 256 },
                 type: "raster",
-                layout: {
-                    visibility: 'none'
-                }
+                tiles: [
+                    "https://khms0.googleapis.com/kh?v=937&hl=en&x={x}&y={y}&z={z}"
+                ]
+                // layout: {
+                //     visibility: 'none'
+                // }
             });
+
+            // style: {
+            //     'version': 8,
+            //     'sources': {
+            //         'raster-tiles': {
+            //             'type': 'raster',
+            //             'tiles': [
+            //                 'https://khms0.googleapis.com/kh?v=937&hl=en&x={x}&y={y}&z={z}'
+            //             ],
+            //             'tileSize': 256,
+            //             'attribution':
+            //                 'Map tiles by <a target="_top" rel="noopener" href="http://stamen.com">Stamen Design</a>, under <a target="_top" rel="noopener" href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a target="_top" rel="noopener" href="http://openstreetmap.org">OpenStreetMap</a>, under <a target="_top" rel="noopener" href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>'
+            //         }
+            //     },
+            //     'layers': [
+            //         {
+            //             'id': 'simple-tiles',
+            //             'type': 'raster',
+            //             'source': 'raster-tiles',
+            //             'minzoom': 0,
+            //             'maxzoom': 22
+            //         }
+            //     ]
+            // },
+
+
 
             map.loadImage("img/rotate.png", function (error, image) {
                 if (error) throw error;
@@ -270,7 +314,7 @@
                     'fill-color': '#0080ff', // blue color fill
                     'fill-opacity': 0.5
                 }
-            }, 'satellite');
+            });
 
             map.on('click', "maine", (e) => {
                 // const features = map.queryRenderedFeatures(e.point, ["maine"]);
@@ -288,6 +332,8 @@
             // map.on('mouseleave', 'parking', () => {
             //     map.getCanvas().style.cursor = '';
             // });
+
+
         })
 
         function updateArea() {

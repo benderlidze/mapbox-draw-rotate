@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Filters</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.11.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.11.0/mapbox-gl.js"></script>
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.js"></script>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.css"
+        type="text/css">
+    <script src="js/rotate_mod.js"></script>
+
+    <link href="css/toggle.css" rel="stylesheet">
+    <link href="css/main.css" rel="stylesheet">
+
+    <style>
+        .mapboxgl-ctrl-top-right {
+            display: none;
+        }
+
+        .sectors-override {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .lot-button {
+            width: 70px;
+            height: 70px;
+        }
+
+        #lots {
+            top: 80px;
+            left: 20px;
+            position: absolute;
+            z-index: 10;
+            background-color: white;
+            border-radius: 10px;
+            display: flex;
+            padding: 10px;
+            flex-direction: column;
+        }
+
+        .lot-button {
+            cursor: pointer;
+            background-color: #ccc;
+            padding: 5px;
+            margin: 5px;
+            border-radius: 5px;
+        }
+
+        .lot-button:hover {
+            background-color: rgb(148, 148, 148);
+        }
+
+        #polygon-info {
+            top: 20px;
+            right: 20px;
+            position: absolute;
+            z-index: 10;
+            background-color: white;
+            border-radius: 10px;
+            display: flex;
+            padding: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+
+    <div id="retailers-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-retailers-modal">&times;</span>
+            <h3>List of occupiers currently in our database</h3>
+            <p id="retailers">Loading...</p>
+            <div id="button-request">Request another retailer(s)</div>
+        </div>
+    </div>
+
+    <div id="filters">
+        <span class="small-text">Search town or postcode</span>
+        <div id="address">
+            <input type="text" id="search">
+        </div>
+        <hr>
+        <div class="item-header">
+            Objects
+        </div>
+        <div id="sectors" class="sectors sectors-override">
+
+        </div>
+        <div>
+            <div id="shop-list"></div>
+        </div>
+        <hr>
+        <div class="switch-item">
+            <div class="item-header">Satellite view</div>
+            <label class="switch">
+                <input type="checkbox" id="satelliteLayer">
+                <span class="slider round"></span>
+            </label>
+        </div>
+        <hr>
+        <div class="item-header">
+            <span id="resetSectors">Reset</span>
+        </div>
+
+        <div class="draw">
+            <button id="draw">Draw</button>
+            <button id="rotate">Rotate</button>
+        </div>
+    </div>
+
+    <div id="polygon-info"></div>
+
+    <div id="map"></div>
+
+    <script>
+        const satelliteLayer = document.getElementById('satelliteLayer');
+        const drawButton = document.getElementById("draw");
+        const rotateButton = document.getElementById("rotate");
+        const polygonInfo = document.getElementById("polygon-info");
+        const sectorsDiv = document.getElementById("sectors");
+
+        const drawLlayers = ['gl-draw-polygon-fill-inactive.cold', 'gl-draw-polygon-fill-active.cold', 'gl-draw-overlay-polygon-fill-inactive.cold', 'gl-draw-overlay-polygon-fill-active.cold', 'gl-draw-polygon-stroke-inactive.cold', 'gl-draw-polygon-stroke-active.cold', 'gl-draw-polygon-midpoint.cold', 'gl-draw-line-inactive.cold', 'gl-draw-line-active.cold', 'gl-draw-polygon-and-line-vertex-stroke-inactive.cold', 'gl-draw-polygon-and-line-vertex-inactive.cold', 'gl-draw-polygon-and-line-vertex-scale-icon.cold', 'gl-draw-point-point-stroke-inactive.cold', 'gl-draw-point-inactive.cold', 'gl-draw-point-stroke-active.cold', 'gl-draw-point-active.cold', 'gl-draw-polygon-fill-static.cold', 'gl-draw-polygon-stroke-static.cold', 'gl-draw-line-static.cold', 'gl-draw-point-static.cold', 'gl-draw-line-rotate-point.cold', 'gl-draw-polygon-rotate-point-stroke.cold', 'gl-draw-polygon-rotate-point.cold', 'gl-draw-polygon-rotate-point-icon.cold', 'gl-draw-polygon-fill-inactive.hot', 'gl-draw-polygon-fill-active.hot', 'gl-draw-overlay-polygon-fill-inactive.hot', 'gl-draw-overlay-polygon-fill-active.hot', 'gl-draw-polygon-stroke-inactive.hot', 'gl-draw-polygon-stroke-active.hot', 'gl-draw-polygon-midpoint.hot', 'gl-draw-line-inactive.hot', 'gl-draw-line-active.hot', 'gl-draw-polygon-and-line-vertex-stroke-inactive.hot', 'gl-draw-polygon-and-line-vertex-inactive.hot', 'gl-draw-polygon-and-line-vertex-scale-icon.hot', 'gl-draw-point-point-stroke-inactive.hot', 'gl-draw-point-inactive.hot', 'gl-draw-point-stroke-active.hot', 'gl-draw-point-active.hot', 'gl-draw-polygon-fill-static.hot', 'gl-draw-polygon-stroke-static.hot', 'gl-draw-line-static.hot', 'gl-draw-point-static.hot', 'gl-draw-line-rotate-point.hot', 'gl-draw-polygon-rotate-point-stroke.hot', 'gl-draw-polygon-rotate-point.hot', 'gl-draw-polygon-rotate-point-icon.hot']
+
+        const lots = [
+            {
+                name: "Parking lot 5",
+                geometry: [{ "x": 153.01113519320307, "y": 791.0100046437936 }, { "x": 190.51113519320307, "y": 751.3850046279856 }, { "x": 289.0111351932031, "y": 843.0100046279856 }, { "x": 253.51113519320307, "y": 883.0100046279856 }, { "x": 153.01113519320307, "y": 791.0100046437936 }]
+            },
+            {
+                name: "Parking lot 20",
+                geometry: [{ "x": 43.17042169617853, "y": 799.806031253541 }, { "x": 114.04542169617854, "y": 724.431031253541 }, { "x": 313.17042169617855, "y": 905.431031253541 }, { "x": 240.17042169617852, "y": 982.9310312693491 }, { "x": 43.17042169617853, "y": 799.806031253541 }]
+            },
+            {
+                name: "Foodstore - 20,000 sq.ft",
+                geometry: [{ "x": 277.6560297612544, "y": 335.86451180158457 }, { "x": 60.65603009322492, "y": 603.8645117383521 }, { "x": 631.6560304093873, "y": 1069.8645120545145 }, { "x": 851.6560301880736, "y": 798.8645120228982 }, { "x": 277.6560297612544, "y": 335.86451180158457 }]
+            },
+            {
+                name: "Fast Food Drive-thru",
+                geometry: [{ "x": 373.0155377707868, "y": 606.2702842856652 }, { "x": 370.20672431951726, "y": 736.8801081572688 }, { "x": 666.0684043016806, "y": 746.2428196035373 }, { "x": 671.6566251899504, "y": 615.6329957951662 }, { "x": 373.0155377707868, "y": 606.2702842856652 }]
+            }
+        ]
+
+        lots.forEach(d => {
+            sectorsDiv.appendChild(createLotButton(d, () => placeLotOnMap(d)))
+        })
+
+        mapboxgl.accessToken = 'pk.eyJ1Ijoic2VyZ2JlciIsImEiOiJja3dwOWgzeGQwYWdyMm9xb2pkMDFvYmNuIn0.H9AJ_NLmDNYMed6dvu_Q0A';
+        const map = new mapboxgl.Map({
+            container: 'map', // container ID
+            // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
+            style: 'mapbox://styles/mapbox/light-v9', // style URL
+            center: { lng: -2.596489317747442, lat: 51.41564568411687 }, // starting position [lng, lat]
+            zoom: 19 // starting zoom
+        });
+
+        const draw = new MapboxDraw({
+            userProperties: true,
+            //  displayControlsDefault: false,
+            styles: ScaleRotateMode.SRStyle,
+            modes: Object.assign(MapboxDraw.modes, {
+                scaleRotateMode: ScaleRotateMode.SRMode,
+            }),
+        });
+        map.addControl(draw);
+
+        const ScaleRotateModeProps = {
+            canScale: false,
+            canRotate: true, // only rotation enabled
+            canTrash: false, // disable feature delete
+            rotatePivot: ScaleRotateMode.SRCenter.Center, // rotate around center
+            scaleCenter: ScaleRotateMode.SRCenter.Opposite, // scale around opposite vertex
+            singleRotationPoint: true, // only one rotation point
+            rotationPointRadius: 1.2, // offset rotation point
+            canSelectFeatures: true,
+        }
+
+        satelliteLayer && satelliteLayer.addEventListener("input", function () {
+            if (satelliteLayer.checked) {
+                map.setLayoutProperty('satellite', 'visibility', 'visible');
+            } else {
+                map.setLayoutProperty('satellite', 'visibility', 'none');
+            }
+        });
+
+
+        drawButton.addEventListener("click", () => {
+            draw.changeMode('draw_polygon');
+        })
+        rotateButton.addEventListener("click", () => {
+            draw.changeMode('scaleRotateMode', ScaleRotateModeProps);
+        })
+
+        map.on('draw.selectionchange', updateArea);
+
+        map.on('load', () => {
+
+            map.addSource("hillshade", {
+                type: "raster",
+                tiles: [
+                    "https://khms0.googleapis.com/kh?v=937&hl=en&x={x}&y={y}&z={z}"
+                ]
+            });
+
+            map.addLayer({
+                id: "satellite",
+                type: "raster",
+                source: "hillshade",
+                layout: {
+                    visibility: 'none'
+                }
+            }, ...drawLlayers);
+
+            map.loadImage("img/rotate.png", function (error, image) {
+                if (error) throw error;
+                map.addImage('rotate', image);
+            });
+
+            map.addSource('maine', {
+                'type': 'geojson',
+                'data': turf.featureCollection([])
+            });
+
+            // Add a new layer to visualize the polygon.
+            map.addLayer({
+                'id': 'maine',
+                'type': 'fill',
+                'source': 'maine', // reference the data source
+                'layout': {},
+                'paint': {
+                    'fill-color': '#0080ff', // blue color fill
+                    'fill-opacity': 0.5
+                }
+            });
+
+
+            const coords = [
+                [-73.72272957361969, 40.66389640678605],
+                [-73.72253486559555, 40.66389640678605],
+                [-73.72253443766567, 40.66373150775527],
+                [-73.72272957361969, 40.66373150775527],
+            ];
+            map.addSource('parking', {
+                'type': 'image',
+                'url': 'img/5-parking-lot.png',
+                'coordinates': coords
+            });
+            map.addLayer({
+                'id': 'parking',
+                'type': 'raster',
+                'source': 'parking',
+                'paint': {
+                    'raster-fade-duration': 0,
+                    'raster-opacity': 0.95
+                }
+            });
+
+            map.on('click', "maine", (e) => {
+                draw.add(e.features[0])
+                map.getSource("maine").setData((turf.featureCollection([])))
+            })
+            // map.on('mouseenter', 'parking', () => {
+            //     map.getCanvas().style.cursor = 'pointer';
+            // });
+
+            // // Change it back to a pointer when it leaves.
+            // map.on('mouseleave', 'parking', () => {
+            //     map.getCanvas().style.cursor = '';
+            // });
+
+        })
+
+        function updateArea() {
+            const geometry = draw.getSelected()
+            const area = turf.area(geometry);
+            const length = turf.length(geometry, { units: 'kilometers' });
+            const data = `
+                <div>
+                    <div>Area: ${area.toFixed(2)} m<sup>2</sup></div>
+                    <div> ${(area * 10.764).toFixed(2)} sq.ft</div>
+                    <div> ${(area / 4047).toFixed(2)} acres</div>
+                </div>
+            `
+            polygonInfo.innerHTML = `${data}`
+        }
+
+        function placeLotOnMap(data) {
+            map.setZoom(19)//projection zoom
+            const proj = data.geometry
+            const polyCoordinates = proj.map(d => {
+                return map.unproject(d).toArray()
+            })
+            const polygon = turf.polygon([polyCoordinates])
+            map.getSource("maine").setData((polygon))
+
+
+
+
+            map.getSource("parking").setCoordinates(polyCoordinates)
+        }
+
+        function getGeometry() {
+            map.setZoom(19)
+            map.once("idle", () => {
+                const g = draw.getSelected();
+                const coords = g.features[0].geometry.coordinates[0]
+                const projections = coords.map(d => {
+                    console.log('d', d);
+                    return map.project(d)
+                })
+                console.log('pro', JSON.stringify(projections));
+            })
+        }
+
+        // function updateArea(e) {
+        //     const data = draw.getAll();
+        //     console.log('data', ...data.features[0].geometry.coordinates);
+        //     const square = data.features[0].geometry.coordinates[0]
+        //     square.pop()
+        //     map.getSource("parking").setCoordinates(square)
+        // }
+
+        function createLotButton(data, clickEvent) {
+
+            console.log('data', data);
+            const div = document.createElement('div')
+            div.addEventListener("click", () => typeof clickEvent === 'function' && clickEvent())
+            div.className = "lot-button"
+            div.innerText = data.name
+
+            return div
+        }
+
+
+        function initMap() {
+            const input = document.getElementById("search");
+            const autocomplete = new google.maps.places.Autocomplete(input);
+            autocomplete.addListener("place_changed", () => {
+                const place = autocomplete.getPlace();
+                if (!place.geometry || !place.geometry.location) {
+                    window.alert("No details available for input: '" + place.name + "'");
+                    return;
+                }
+                console.log('place.geometry', place.geometry);
+                // if (place.geometry.viewport) {
+                //     map.fitBounds(place.geometry.viewport);
+                // } else {
+                //     map.setCenter(place.geometry.location);
+                //     map.setZoom(17);
+                // }
+                const { lat, lng } = place.geometry.location.toJSON()
+                map.flyTo({
+                    center: { lat, lng },
+                    zoom: 12
+                })
+
+                if (userMarker) userMarker.remove();
+
+                userMarker = new mapboxgl.Marker({ color: 'blue' })
+                    .setLngLat({ lat, lng })
+                    .addTo(map);
+
+                userPosition.lat = lat
+                userPosition.lng = lng
+            });
+        }
+
+
+
+        function buildCategoryFilters(data) {
+
+            const sectorsArr = data.map(store => store.sector.split(",").map(i => i.trim())).flat().filter(i => i !== "")
+            const sector = [...new Set(sectorsArr)]
+            const checkboxes = sector.map(name => {
+
+                const checkbox = buildDivBox(name, false, sectorName => {
+
+                    var index = selectedSectors.indexOf(sectorName);
+                    if (index !== -1) {
+                        selectedSectors.splice(index, 1);
+                    } else {
+                        selectedSectors.push(sectorName)
+                    }
+
+                    const shopNames = shopData.filter(shop => {
+                        return selectedSectors.length > 0 && selectedSectors.every(elem => shop.sectors.includes(elem))
+                    })
+
+                    const pins = shopNames
+                        .map(pin => {
+                            const { property_latitude, property_longitude } = pin
+                            return {
+                                "type": "Feature", "properties": { ...pin, },
+                                "geometry": {
+                                    "type": "Point", "coordinates": [+property_longitude, +property_latitude]
+                                }
+                            }
+                        })
+                    const featureCollection = turf.featureCollection(pins)
+                    map.getSource("store").setData(featureCollection)
+                })
+                sectorsDiv.appendChild(checkbox)
+
+                return checkbox
+            })
+            return checkboxes
+        }
+
+        function buildStoreFilters(data) {
+
+            const names = [...new Set(data.map(store => store.company_name).sort())]
+            console.log('names', names);
+            names.forEach(name => {
+                const checkbox = buildCheckBox(name, selectedShops.includes(name), e => {
+                    console.log('name', e);
+                    const checked = e.target.checked
+                    const value = e.target.id
+                    if (checked) {
+                        selectedShops.push(value)
+                    } else {
+                        var index = selectedShops.indexOf(value);
+                        if (index !== -1) {
+                            selectedShops.splice(index, 1);
+                        }
+                    }
+                    filterByShopNameS(selectedShops)
+                })
+                shopList.appendChild(checkbox)
+            })
+        }
+
+        function buildCheckBox(name, checked, eventFunction) {
+            const div = document.createElement("div")
+            const checkbox = document.createElement('input');
+            checkbox.type = "checkbox";
+            checkbox.name = "name";
+            checkbox.value = name;
+            checkbox.id = name;
+            checkbox.addEventListener("input", eventFunction)
+            checkbox.checked = checked
+            var label = document.createElement('label')
+            label.htmlFor = name;
+            label.appendChild(document.createTextNode(name));
+            div.appendChild(checkbox);
+            div.appendChild(label);
+            return div
+        }
+
+        function buildDivBox(name, checked, eventFunction) {
+
+            let active = false;
+            const div = document.createElement("div")
+            div.className = 'div-box'
+            div.id = name;
+            div.addEventListener("click", () => {
+                active = !active
+                console.log('active', active);
+
+                if (active) {
+                    div.classList.add("div-box-active")
+                } else {
+                    div.classList.remove("div-box-active")
+                }
+
+                eventFunction(name)
+            })
+            const iconName = name.toLowerCase().trim()
+            console.log('iconsName', iconName);
+            const img = document.createElement("img")
+            img.src = `icons/${iconName}.svg`
+            img.style.width = "30px"
+            img.style.height = "30px"
+            const label = document.createElement("div")
+            label.innerText = name
+            div.appendChild(img)
+            div.appendChild(label);
+            return div
+        }
+
+
+        function filterByShopName() {
+            const name = shopName.value;
+            map.setFilter('store', ['==', 'company_name', name]);
+            map.setFilter('storeLogo', ['==', 'company_name', name]);
+        }
+
+        function filterByShopNameS(shopNameArray) {
+
+            console.log('shopNameArray', shopNameArray);
+            const pins = shopData
+                .filter(pin => shopNameArray.includes(pin.company_name))
+                .map(pin => {
+                    const { property_latitude, property_longitude } = pin
+                    return {
+                        "type": "Feature", "properties": { ...pin, },
+                        "geometry": {
+                            "type": "Point", "coordinates": [+property_longitude, +property_latitude]
+                        }
+                    }
+                })
+            const featureCollection = turf.featureCollection(pins)
+            map.getSource("store").setData(featureCollection)
+        }
+
+    </script>
+
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBrK7zAmbEFKIyv_g6XOE3WpSq34nOYuEI&callback=initMap&libraries=places&v=weekly"
+        defer></script>
+
+</body>
+
+</html>
