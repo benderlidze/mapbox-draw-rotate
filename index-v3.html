@@ -311,9 +311,6 @@
             const debounceRotate = _.debounce(updateFunc, 2000) //more time for rotate
 
 
-
-
-
             map.on("draw.update", (e) => {
                 console.log('debouncedUpdateEvent');
                 const mode = draw.getMode()
