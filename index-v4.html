@@ -110,6 +110,7 @@
         <div class="draw">
             <button id="draw" class="buttons">Draw</button>
             <button id="rotate" class="buttons">Rotate</button>
+            <button id="delete" class="buttons">Delete</button>
         </div>
         <hr>
         <div class="item-header">
@@ -145,6 +146,7 @@
     <script>
         const satelliteLayer = document.getElementById('satelliteLayer');
         const drawButton = document.getElementById("draw");
+        const deleteButton = document.getElementById("delete");
         const rotateButton = document.getElementById("rotate");
         const polygonInfo = document.getElementById("polygon-info");
         const sectorsDiv = document.getElementById("sectors");
@@ -233,6 +235,19 @@
         })
         rotateButton.addEventListener("click", () => {
             draw.changeMode('scaleRotateMode', ScaleRotateModeProps);
+        })
+        deleteButton.addEventListener("click", () => {
+
+            const selectedGeometry = draw.getSelected()
+            console.log('selectedGeometry', selectedGeometry);
+
+            const id = selectedGeometry.features[0].properties.gid
+
+            const polygonObj = mainData.layers.get(id)
+            polygonObj.deleteGeometry()
+            mainData.layers.delete(id)
+
+            draw.deleteAll()
         })
 
         map.on('draw.selectionchange', updateArea);
@@ -435,26 +450,31 @@
 
             function updateGeometry(geometry) {
                 polygon = geometry
-                console.log('polygon', polygon);
-                console.log('imageLayer', imageLayer);
                 const coords = turf.getCoords(polygon.features[0])[0].slice(0, 4)
-                console.log('coords', coords);
-
                 !map.getSource(geometryLayer) && console.error("Layer does not exist")
                 map.getSource(geometryLayer) && map.getSource(geometryLayer).setData(polygon)
                 map.getSource(imageLayer) && map.getSource(imageLayer).setCoordinates(coords)
-
             }
 
             function getGeometry() {
                 return polygon;
             }
 
-            return {
+            function deleteGeometry() {
+
+                map.getLayer(geometryLayer) && map.removeLayer(geometryLayer)
+                map.getLayer(imageLayer) && map.removeLayer(imageLayer)
+
+                map.getSource(geometryLayer) && map.removeSource(geometryLayer)
+                map.getSource(imageLayer) && map.removeSource(imageLayer)
+            }
+
+            return Object.freeze({
                 layerId,
                 updateGeometry,
-                getGeometry
-            }
+                getGeometry,
+                deleteGeometry
+            })
         }
 
         function generateId() {
