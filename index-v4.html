@@ -300,8 +300,12 @@
                 if (!geometry) return;
                 const id = geometry.properties.gid
                 //update coordinates of the object 
-                map.getSource("geom_" + id).setData(geometry)
-                map.getSource("image_" + id) && map.getSource("image_" + id).setCoordinates(geometry.geometry.coordinates[0])
+                console.log('id', id);
+                console.log('geometry-->', e.features[0]);
+
+                const geometryObj = mainData.layers.get(id)
+                geometryObj.updateGeometry(draw.getSelected())
+
                 editMode = false //SET the ability to select it again 
                 draw.deleteAll()
             }
