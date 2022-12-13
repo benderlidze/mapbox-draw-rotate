@@ -275,17 +275,22 @@
             let editMode = false;
 
             map.on('click', (e) => {
-                if (editMode) return;
+
+                //if (editMode) return;
                 const features = map.queryRenderedFeatures(e.point);
                 //get the first layer geom_
                 const layers = features.filter(d => d.layer.id.includes("geom_"))
                 console.log('layers', layers);
-                if (layers.length === 0) return;
+                if (layers.length === 0) {
 
-                const layer = layers[0]
-                draw.add(layer)
+                    editMode = false
+                    draw.deleteAll()
 
-                editMode = true
+                } else {
+                    const layer = layers[0]
+                    draw.add(layer)
+                    editMode = true
+                }
             })
 
 
@@ -296,7 +301,6 @@
                 const geometry = e.features[0]
                 if (!geometry) return;
 
-                console.log('geometry', geometry.geometry.coordinates[0]);
                 const id = geometry.properties.gid
                 //update coordinates of the object 
                 map.getSource("geom_" + id).setData(geometry)
