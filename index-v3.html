@@ -296,23 +296,28 @@
 
 
             //debounce for rotation 
-            const debouncedUpdateEvent = _.debounce((e) => {
 
+            const updateFunc = (e) => {
                 const geometry = e.features[0]
                 if (!geometry) return;
-
                 const id = geometry.properties.gid
                 //update coordinates of the object 
                 map.getSource("geom_" + id).setData(geometry)
                 map.getSource("image_" + id) && map.getSource("image_" + id).setCoordinates(geometry.geometry.coordinates[0])
-
                 editMode = false //SET the ability to select it again 
                 draw.deleteAll()
+            }
+            const debounceMove = _.debounce(updateFunc, 1)
+            const debounceRotate = _.debounce(updateFunc, 2000) //more time for rotate
 
-            }, 1000)
+
+
+
 
             map.on("draw.update", (e) => {
-                debouncedUpdateEvent(e)
+                console.log('debouncedUpdateEvent');
+                const mode = draw.getMode()
+                const seconds = mode === "scaleRotateMode" ? debounceRotate(e) : debounceMove(e)
             })
             map.on("draw.selectionchange", (e) => {
                 console.log('draw.selectionchange',);
