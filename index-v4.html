@@ -538,17 +538,17 @@
                 const { lat, lng } = place.geometry.location.toJSON()
                 map.flyTo({
                     center: { lat, lng },
-                    zoom: 12
+                    zoom: 15
                 })
 
-                if (userMarker) userMarker.remove();
+                // if (userMarker) userMarker.remove();
 
-                userMarker = new mapboxgl.Marker({ color: 'blue' })
-                    .setLngLat({ lat, lng })
-                    .addTo(map);
+                // userMarker = new mapboxgl.Marker({ color: 'blue' })
+                //     .setLngLat({ lat, lng })
+                //     .addTo(map);
 
-                userPosition.lat = lat
-                userPosition.lng = lng
+                // userPosition.lat = lat
+                // userPosition.lng = lng
             });
         }
 
