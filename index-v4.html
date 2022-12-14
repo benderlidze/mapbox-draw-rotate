@@ -115,6 +115,7 @@
             <button id="draw" class="buttons">Draw</button>
             <button id="rotate" class="buttons">Rotate</button>
             <button id="delete" class="buttons">Delete</button>
+            <button id="addInfo" class="buttons">Add info</button>
         </div>
         <hr>
         <div class="item-header">
@@ -159,6 +160,7 @@
         const sectorsDiv = document.getElementById("sectors");
         const resetButton = document.getElementById("resetSectors");
         const helpButton = document.getElementById("help");
+        const addInfoButton = document.getElementById("addInfo");
 
         const mainData = {
             layers: new Map()
@@ -241,14 +243,46 @@
         });
 
         helpButton.addEventListener("click", () => {
+
+            const div = document.createElement("div")
+            div.innerHTML = `<div style="position: relative; padding-bottom: 56.25%; height: 0;"><iframe src="https://jumpshare.com/embed/Upb0jXRkWvxOCPaWCbBA" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>`;
             infoModal.showInfo({
                 header: `Help`,
-                data: `
-                <div style="position: relative; padding-bottom: 56.25%; height: 0;"><iframe src="https://jumpshare.com/embed/Upb0jXRkWvxOCPaWCbBA" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
-                `,
+                data: div,
             })
         })
 
+        addInfoButton.addEventListener("click", () => {
+
+            const selectedGeometry = draw.getSelected()
+            console.log('selectedGeometry', selectedGeometry);
+            if (selectedGeometry.features.length === 0) {
+                alert("Please select a polygon")
+                return;
+            }
+            const id = selectedGeometry.features[0].properties.gid
+            const polygonObj = mainData.layers.get(id)
+
+            const div = document.createElement("div")
+            const input = document.createElement("input")
+            const button = document.createElement("button")
+            button.innerText = "Add info"
+            button.addEventListener("click", () => {
+                console.log('polygonObj', polygonObj);
+                console.log('input.value', input.value);
+                polygonObj.updateInfo(input.value)
+                infoModal.closeWindow()
+            })
+
+            div.appendChild(input)
+            div.appendChild(button)
+
+            infoModal.showInfo({
+                header: `Add info to polygon`,
+                data: div,
+            })
+
+        })
         drawButton.addEventListener("click", () => {
             draw.changeMode('draw_polygon');
         })
@@ -305,6 +339,23 @@
             let editMode = false;
             let drawPolygonMode = false
 
+            const popup = new mapboxgl.Popup({
+                closeButton: false,
+                closeOnClick: false,
+                offset: [0, -20]
+            });
+
+            map.on('mousemove', (e) => {
+                if (editMode) return;
+                const features = map.queryRenderedFeatures(e.point);
+                if (features.length > 0 && features[0].properties && features[0].properties.info) {
+                    const info = features[0].properties.info
+                    popup.setLngLat(e.lngLat).setHTML(info).addTo(map);
+                } else {
+                    popup.remove()
+                }
+            })
+
             map.on('click', (e) => {
 
                 console.log('draw.getMode()', draw.getMode());
@@ -334,6 +385,8 @@
                     draw.add(geometry)
                     editMode = true
                 }
+
+                popup.remove()
             })
 
             //debounce for rotation 
@@ -483,6 +536,12 @@
                 map.getSource(imageLayer) && map.getSource(imageLayer).setCoordinates(coords)
             }
 
+            function updateInfo(info) {
+                polygon.properties.info = info
+                !map.getSource(geometryLayer) && console.error("Layer does not exist")
+                map.getSource(geometryLayer) && map.getSource(geometryLayer).setData(polygon)
+            }
+
             function getGeometry() {
                 return polygon;
             }
@@ -499,6 +558,7 @@
             return Object.freeze({
                 layerId,
                 updateGeometry,
+                updateInfo,
                 getGeometry,
                 deleteGeometry
             })
@@ -710,10 +770,12 @@
 
             function closeWindow() {
                 modalWindow.style.display = "none"
+                modalWindowBody.replaceChildren()
+                modalWindowHeader.innerText = ""
             }
 
             function setData({ data, header = "" }) {
-                modalWindowBody.innerHTML = data
+                modalWindowBody.appendChild(data)
                 modalWindowHeader.innerText = header
             }
             function showInfo({ data, header }) {
