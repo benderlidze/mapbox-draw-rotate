@@ -91,12 +91,14 @@
 <body>
 
 
-    <div id="retailers-modal" class="modal">
+    <div id="modal-info" class="modal">
         <div class="modal-content">
-            <span class="close" id="close-retailers-modal">&times;</span>
-            <h3>List of occupiers currently in our database</h3>
-            <p id="retailers">Loading...</p>
-            <div id="button-request">Request another retailer(s)</div>
+            <div class="modal-header">
+                <span class="close" id="close-modal-info">&times;</span>
+                <h2 id="modal-info-header"></h2>
+            </div>
+            <div class="modal-body" id="modal-window-body">
+            </div>
         </div>
     </div>
 
@@ -135,7 +137,7 @@
         <hr>
         <div class="item-header">
             <span class="" id="resetSectors">Reset</span>
-            <span class="buttons help-button">Help</span>
+            <span id="help" class="buttons help-button">Help</span>
         </div>
 
 
@@ -156,10 +158,13 @@
         const polygonInfo = document.getElementById("polygon-info");
         const sectorsDiv = document.getElementById("sectors");
         const resetButton = document.getElementById("resetSectors");
+        const helpButton = document.getElementById("help");
 
         const mainData = {
             layers: new Map()
         }
+
+        const infoModal = createModal()
 
         const drawLlayers = ['gl-draw-polygon-fill-inactive.cold', 'gl-draw-polygon-fill-active.cold', 'gl-draw-overlay-polygon-fill-inactive.cold', 'gl-draw-overlay-polygon-fill-active.cold', 'gl-draw-polygon-stroke-inactive.cold', 'gl-draw-polygon-stroke-active.cold', 'gl-draw-polygon-midpoint.cold', 'gl-draw-line-inactive.cold', 'gl-draw-line-active.cold', 'gl-draw-polygon-and-line-vertex-stroke-inactive.cold', 'gl-draw-polygon-and-line-vertex-inactive.cold', 'gl-draw-polygon-and-line-vertex-scale-icon.cold', 'gl-draw-point-point-stroke-inactive.cold', 'gl-draw-point-inactive.cold', 'gl-draw-point-stroke-active.cold', 'gl-draw-point-active.cold', 'gl-draw-polygon-fill-static.cold', 'gl-draw-polygon-stroke-static.cold', 'gl-draw-line-static.cold', 'gl-draw-point-static.cold', 'gl-draw-line-rotate-point.cold', 'gl-draw-polygon-rotate-point-stroke.cold', 'gl-draw-polygon-rotate-point.cold', 'gl-draw-polygon-rotate-point-icon.cold', 'gl-draw-polygon-fill-inactive.hot', 'gl-draw-polygon-fill-active.hot', 'gl-draw-overlay-polygon-fill-inactive.hot', 'gl-draw-overlay-polygon-fill-active.hot', 'gl-draw-polygon-stroke-inactive.hot', 'gl-draw-polygon-stroke-active.hot', 'gl-draw-polygon-midpoint.hot', 'gl-draw-line-inactive.hot', 'gl-draw-line-active.hot', 'gl-draw-polygon-and-line-vertex-stroke-inactive.hot', 'gl-draw-polygon-and-line-vertex-inactive.hot', 'gl-draw-polygon-and-line-vertex-scale-icon.hot', 'gl-draw-point-point-stroke-inactive.hot', 'gl-draw-point-inactive.hot', 'gl-draw-point-stroke-active.hot', 'gl-draw-point-active.hot', 'gl-draw-polygon-fill-static.hot', 'gl-draw-polygon-stroke-static.hot', 'gl-draw-line-static.hot', 'gl-draw-point-static.hot', 'gl-draw-line-rotate-point.hot', 'gl-draw-polygon-rotate-point-stroke.hot', 'gl-draw-polygon-rotate-point.hot', 'gl-draw-polygon-rotate-point-icon.hot']
 
@@ -235,6 +240,14 @@
             }
         });
 
+        helpButton.addEventListener("click", () => {
+            infoModal.showInfo({
+                header: `Help`,
+                data: `
+                <div style="position: relative; padding-bottom: 56.25%; height: 0;"><iframe src="https://jumpshare.com/embed/Upb0jXRkWvxOCPaWCbBA" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+                `,
+            })
+        })
 
         drawButton.addEventListener("click", () => {
             draw.changeMode('draw_polygon');
@@ -684,6 +697,37 @@
             map.setFilter('store', ['==', 'company_name', name]);
             map.setFilter('storeLogo', ['==', 'company_name', name]);
         }
+
+        function createModal() {
+            const modalWindow = document.getElementById("modal-info")
+            const modalWindowBody = document.getElementById("modal-window-body")
+            const closeModal = document.getElementById("close-modal-info")
+            const modalWindowHeader = document.getElementById("modal-info-header")
+
+            closeModal.addEventListener("click", () => {
+                modalWindow.style.display = "none"
+            })
+
+            function closeWindow() {
+                modalWindow.style.display = "none"
+            }
+
+            function setData({ data, header = "" }) {
+                modalWindowBody.innerHTML = data
+                modalWindowHeader.innerText = header
+            }
+            function showInfo({ data, header }) {
+                setData({ data, header });
+                modalWindow.style.display = "block"
+            }
+
+            return {
+                showInfo,
+                closeWindow
+            }
+        }
+
+
 
         function filterByShopNameS(shopNameArray) {
 
