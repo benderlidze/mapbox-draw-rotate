@@ -91,7 +91,9 @@
         }
 
         .modal {
-            padding-top: 35%
+            padding-top: 0;
+            justify-content: center;
+            align-items: center;
         }
 
         .marker {
@@ -830,7 +832,7 @@
             }
             function showInfo({ data, header }) {
                 setData({ data, header });
-                modalWindow.style.display = "block"
+                modalWindow.style.display = "flex"
             }
 
             return {
