@@ -121,6 +121,24 @@
             border-right: 36px solid #ccc;
             border-bottom: 5px solid transparent;
         }
+
+
+        .wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .close-marker:before {
+            content: '✕';
+        }
+
+        .close-marker {
+            position: absolute;
+            top: 0;
+            right: 0;
+            cursor: pointer;
+            margin-right: 5px;
+        }
     </style>
 </head>
 
@@ -533,11 +551,25 @@
         })
 
         function addPlaceholder(text) {
+            let marker;
+            const div = document.createElement('div');
+            div.className = "wrapper"
+
+            const span = document.createElement('span');
+            span.className = "close-marker"
+            span.addEventListener("click", () => {
+                marker.remove()
+            })
+
             const el = document.createElement('div');
             el.className = 'marker';
             el.innerHTML = text
+
+            div.appendChild(el)
+            div.appendChild(span)
+
             // make a marker for each feature and add it to the map
-            new mapboxgl.Marker(el, { draggable: true, anchor: "left", offset: [30, 0] })
+            marker = new mapboxgl.Marker(div, { draggable: true, anchor: "left", offset: [30, 0] })
                 .setLngLat(map.getCenter())
                 .addTo(map);
         }
