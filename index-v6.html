@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Filters</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.11.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.11.0/mapbox-gl.js"></script>
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.js"></script>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.css"
+        type="text/css">
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+
+    <script src="js/rotate_mod.js"></script>
+
+    <link href="css/toggle.css" rel="stylesheet">
+    <link href="css/main.css" rel="stylesheet">
+
+    <style>
+        .mapboxgl-ctrl-top-right {
+            display: none;
+        }
+
+        .sectors-override {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .lot-button {
+            width: 70px;
+            height: 70px;
+        }
+
+        #lots {
+            top: 80px;
+            left: 20px;
+            position: absolute;
+            z-index: 10;
+            background-color: white;
+            border-radius: 10px;
+            display: flex;
+            padding: 10px;
+            flex-direction: column;
+        }
+
+        .lot-button {
+            cursor: pointer;
+            background-color: #ccc;
+            padding: 5px;
+            margin: 5px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        .lot-button:hover {
+            background-color: rgb(148, 148, 148);
+        }
+
+        #polygon-info-container {
+            top: 20px;
+            right: 20px;
+            position: absolute;
+            z-index: 10;
+            background-color: white;
+            border-radius: 10px;
+            display: flex;
+            padding: 10px;
+            border: 1px solid #004cff;
+            flex-direction: column;
+            font: 0.8em sans-serif;
+        }
+
+        .draw {
+            display: flex;
+        }
+
+        .draw>button {
+            margin-right: 3px;
+        }
+
+        .help-button {
+            background-color: #f29830;
+            border: none;
+            margin: 0px 3px;
+            color: white;
+        }
+
+        .modal-content {
+            width: 60%;
+        }
+
+        .modal {
+            padding-top: 0;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .marker {
+
+            min-width: 100px;
+            height: 30px;
+            background: #ccc;
+
+
+            border-radius: 5px;
+            padding: 5px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .marker:before {
+            content: "";
+            position: absolute;
+            right: 100%;
+            top: 16px;
+            width: 0;
+            height: 0;
+            border-top: 5px solid transparent;
+            border-right: 36px solid #ccc;
+            border-bottom: 5px solid transparent;
+        }
+
+
+        .wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .close-marker:before {
+            content: '✕';
+        }
+
+        .close-marker {
+            position: absolute;
+            top: 0;
+            right: 0;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="modal-info" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" id="close-modal-info">&times;</span>
+                <h2 id="modal-info-header"></h2>
+            </div>
+            <div class="modal-body" id="modal-window-body">
+            </div>
+        </div>
+    </div>
+
+    <div id="filters">
+        <span class="small-text">Search town or postcode</span>
+        <div id="address">
+            <input type="text" id="search">
+        </div>
+        <hr>
+        <div class="item-header">
+            Tools
+        </div>
+        <div class="draw">
+            <button id="draw" class="buttons">Draw</button>
+            <button id="rotate" class="buttons">Rotate</button>
+            <button id="delete" class="buttons">Delete</button>
+            <button id="addInfo" class="buttons">Add info</button>
+        </div>
+        <hr>
+        <div class="item-header">
+            Objects
+        </div>
+        <div id="sectors" class="sectors sectors-override">
+
+        </div>
+        <div>
+            <div id="shop-list"></div>
+        </div>
+        <hr>
+        <div class="switch-item">
+            <div class="item-header">Satellite view</div>
+            <label class="switch">
+                <input type="checkbox" id="satelliteLayer">
+                <span class="slider round"></span>
+            </label>
+        </div>
+        <hr>
+
+        <div style="position: relative; padding-bottom: 56.25%; height: 0;"><iframe
+                src="https://jumpshare.com/embed/li1U2vOjjeZ2trFjva61" frameborder="0" webkitallowfullscreen
+                mozallowfullscreen allowfullscreen
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+
+        <div class="item-header">
+            <span class="" id="resetSectors">Reset</span>
+            <span id="help" class="buttons help-button">Tutorial</span>
+        </div>
+
+
+    </div>
+
+    <div id="polygon-info-container">
+        <div id="polygon-info"></div>
+        *Double click to measure an object
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        const satelliteLayer = document.getElementById('satelliteLayer');
+        const drawButton = document.getElementById("draw");
+        const deleteButton = document.getElementById("delete");
+        const rotateButton = document.getElementById("rotate");
+        const polygonInfo = document.getElementById("polygon-info");
+        const sectorsDiv = document.getElementById("sectors");
+        const resetButton = document.getElementById("resetSectors");
+        const helpButton = document.getElementById("help");
+        const addInfoButton = document.getElementById("addInfo");
+
+        const mainData = {
+            layers: new Map()
+        }
+
+        const infoModal = createModal()
+
+        const drawLlayers = ['gl-draw-polygon-fill-inactive.cold', 'gl-draw-polygon-fill-active.cold', 'gl-draw-overlay-polygon-fill-inactive.cold', 'gl-draw-overlay-polygon-fill-active.cold', 'gl-draw-polygon-stroke-inactive.cold', 'gl-draw-polygon-stroke-active.cold', 'gl-draw-polygon-midpoint.cold', 'gl-draw-line-inactive.cold', 'gl-draw-line-active.cold', 'gl-draw-polygon-and-line-vertex-stroke-inactive.cold', 'gl-draw-polygon-and-line-vertex-inactive.cold', 'gl-draw-polygon-and-line-vertex-scale-icon.cold', 'gl-draw-point-point-stroke-inactive.cold', 'gl-draw-point-inactive.cold', 'gl-draw-point-stroke-active.cold', 'gl-draw-point-active.cold', 'gl-draw-polygon-fill-static.cold', 'gl-draw-polygon-stroke-static.cold', 'gl-draw-line-static.cold', 'gl-draw-point-static.cold', 'gl-draw-line-rotate-point.cold', 'gl-draw-polygon-rotate-point-stroke.cold', 'gl-draw-polygon-rotate-point.cold', 'gl-draw-polygon-rotate-point-icon.cold', 'gl-draw-polygon-fill-inactive.hot', 'gl-draw-polygon-fill-active.hot', 'gl-draw-overlay-polygon-fill-inactive.hot', 'gl-draw-overlay-polygon-fill-active.hot', 'gl-draw-polygon-stroke-inactive.hot', 'gl-draw-polygon-stroke-active.hot', 'gl-draw-polygon-midpoint.hot', 'gl-draw-line-inactive.hot', 'gl-draw-line-active.hot', 'gl-draw-polygon-and-line-vertex-stroke-inactive.hot', 'gl-draw-polygon-and-line-vertex-inactive.hot', 'gl-draw-polygon-and-line-vertex-scale-icon.hot', 'gl-draw-point-point-stroke-inactive.hot', 'gl-draw-point-inactive.hot', 'gl-draw-point-stroke-active.hot', 'gl-draw-point-active.hot', 'gl-draw-polygon-fill-static.hot', 'gl-draw-polygon-stroke-static.hot', 'gl-draw-line-static.hot', 'gl-draw-point-static.hot', 'gl-draw-line-rotate-point.hot', 'gl-draw-polygon-rotate-point-stroke.hot', 'gl-draw-polygon-rotate-point.hot', 'gl-draw-polygon-rotate-point-icon.hot']
+
+        const lots = [
+            {
+                name: "5 parking spaces",
+                geometry: [[{ "x": 478, "y": 608 }, { "x": 478, "y": 665 }, { "x": 612, "y": 665 }, { "x": 612, "y": 608 }, { "x": 478, "y": 608 }]],
+                backgroundImage: "img/5-parking-lot1.png",
+                buttonIconImage: "img/car.png"
+            },
+            {
+                name: "10 parking spaces",
+                geometry: [[{ "x": 379, "y": 629 }, { "x": 379, "y": 683 }, { "x": 603, "y": 683 }, { "x": 603, "y": 629 }, { "x": 379, "y": 629 }]],
+                backgroundImage: "img/10-parking-lot1.png",
+                buttonIconImage: "img/car.png"
+            },
+            {
+                name: "15 parking spaces",
+                geometry: [[{ "x": 379, "y": 629 }, { "x": 379, "y": 683 }, { "x": 715, "y": 683 }, { "x": 715, "y": 629 }, { "x": 379, "y": 629 }]],
+                backgroundImage: "img/15-parking-lot1.png",
+                buttonIconImage: "img/car.png"
+            },
+            {
+                name: "Foodstore - 20,000 sq.ft",
+                geometry: [[{ "x": 277.6560297612544, "y": 335.86451180158457 }, { "x": 60.65603009322492, "y": 603.8645117383521 }, { "x": 631.6560304093873, "y": 1069.8645120545145 }, { "x": 851.6560301880736, "y": 798.8645120228982 }, { "x": 277.6560297612544, "y": 335.86451180158457 }]],
+                fillColor: "white",
+                opacity: 0.9,
+                buttonIconImage: "img/shopping-cart.png"
+            },
+            {
+                name: "C-store: 3,600 sq.ft",
+                geometry: [[{ "x": 373, "y": 606 }, { "x": 373, "y": 736 }, { "x": 666, "y": 746 }, { "x": 671, "y": 615 }, { "x": 373, "y": 606 }]],
+                fillColor: "white",
+                opacity: 0.9,
+                buttonIconImage: "img/milk.png"
+            },
+
+            {
+                name: "Coffee Drive-thru",
+                geometry: [[
+                    { "x": 656, "y": 717 },
+                    { "x": 656, "y": 578 },
+                    { "x": 614, "y": 578 },
+                    { "x": 614, "y": 555 },
+                    { "x": 571, "y": 555 },
+                    { "x": 571, "y": 578 },
+                    { "x": 453, "y": 578 },
+                    { "x": 453, "y": 717 },
+                    { "x": 656, "y": 717 }
+                ]
+                ],
+                fillColor: "white",
+                opacity: 0.9,
+                buttonIconImage: "img/coffee.png"
+            },
+
+            {
+                name: "Fast Food Drive-thru",
+                geometry: [
+                    [
+                        { "x": 713, "y": 590 },
+                        { "x": 612, "y": 590 },
+                        { "x": 612, "y": 575 },
+                        { "x": 542, "y": 575 },
+                        { "x": 542, "y": 587 },
+                        { "x": 509, "y": 587 },
+                        { "x": 509, "y": 575 },
+                        { "x": 463, "y": 575 },
+                        { "x": 463, "y": 591 },
+                        { "x": 425, "y": 591 },
+                        { "x": 425, "y": 712 },
+                        { "x": 467, "y": 712 },
+                        { "x": 467, "y": 720 },
+                        { "x": 661, "y": 720 },
+                        { "x": 661, "y": 712 },
+                        { "x": 713, "y": 712 },
+                        { "x": 713, "y": 590 }
+                    ]
+                ],
+                fillColor: "white",
+                opacity: 0.9,
+                buttonIconImage: "img/burger.png"
+            },
+            {
+                name: "Fast Food Drive-thru",
+                geometry: [
+                    [{ "x": 430.99593687020445, "y": 444.8597698078289 }, { "x": 432.3313334479106, "y": 776.0381088118515 }, { "x": 439.6760147517594, "y": 808.7553236693861 }, { "x": 467.71934182444437, "y": 841.4725385190168 }, { "x": 502.4396512007596, "y": 852.1557106031898 }, { "x": 541.1661508792856, "y": 853.4911070939513 }, { "x": 628.6346232096354, "y": 851.4880121009271 }, { "x": 658.0133466070967, "y": 839.4694437868266 }, { "x": 692.7336562995742, "y": 815.4323060125367 }, { "x": 718.7738889325193, "y": 777.3735053342292 }, { "x": 716.1030959826126, "y": 444.85976977621266 }, { "x": 668.0288209557009, "y": 444.8597699659101 }, { "x": 672.0350103252325, "y": 745.3239882201674 }, { "x": 662.6872349452306, "y": 778.7089018407988 }, { "x": 630.6377178232647, "y": 803.4137375640671 }, { "x": 587.2373307076676, "y": 809.4230220372798 }, { "x": 537.8276591662822, "y": 806.0845303242764 }, { "x": 501.7719529119065, "y": 796.0690563866833 }, { "x": 485.0794966232588, "y": 774.0350140717572 }, { "x": 477.73481582526995, "y": 747.994781407196 }, { "x": 479.7379101385449, "y": 444.85976997381414 }, { "x": 430.99593687020445, "y": 444.8597698078289 }],
+                    [
+                        { "x": 505, "y": 540 },
+                        { "x": 505, "y": 570 },
+                        { "x": 485, "y": 570 },
+                        { "x": 485, "y": 610 },
+                        { "x": 505, "y": 610 },
+                        { "x": 505, "y": 740 },
+                        { "x": 642, "y": 740 },
+                        { "x": 642, "y": 540 },
+                        { "x": 505, "y": 540 }]
+                ],
+                fillColor: "white",
+                opacity: 0.9,
+                buttonIconImage: "img/burger.png"
+            }
+        ]
+
+        lots.forEach(d => {
+            sectorsDiv.appendChild(createLotButton(d, () => placeLotOnMap(d)))
+        })
+
+        mapboxgl.accessToken = 'pk.eyJ1Ijoic2VyZ2JlciIsImEiOiJja3dwOWgzeGQwYWdyMm9xb2pkMDFvYmNuIn0.H9AJ_NLmDNYMed6dvu_Q0A';
+        const map = new mapboxgl.Map({
+            container: 'map', // container ID
+            // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
+            style: 'mapbox://styles/mapbox/light-v9', // style URL
+            center: { lng: -2.3557848895820825, lat: 53.43698508344528 },
+            zoom: 6 // starting zoom
+        });
+        map.doubleClickZoom.disable();
+
+        const draw = new MapboxDraw({
+            userProperties: true,
+            //  displayControlsDefault: false,
+            styles: ScaleRotateMode.SRStyle,
+            modes: Object.assign(MapboxDraw.modes, {
+                scaleRotateMode: ScaleRotateMode.SRMode,
+            }),
+        });
+        map.addControl(draw);
+
+        const ScaleRotateModeProps = {
+            canScale: false,
+            canRotate: true, // only rotation enabled
+            canTrash: false, // disable feature delete
+            rotatePivot: ScaleRotateMode.SRCenter.Center, // rotate around center
+            scaleCenter: ScaleRotateMode.SRCenter.Opposite, // scale around opposite vertex
+            singleRotationPoint: true, // only one rotation point
+            rotationPointRadius: 1.2, // offset rotation point
+            canSelectFeatures: true,
+        }
+
+        satelliteLayer && satelliteLayer.addEventListener("input", function () {
+            if (satelliteLayer.checked) {
+                map.setLayoutProperty('satellite', 'visibility', 'visible');
+            } else {
+                map.setLayoutProperty('satellite', 'visibility', 'none');
+            }
+        });
+
+        helpButton.addEventListener("click", () => {
+
+            const div = document.createElement("div")
+            div.innerHTML = `<div style="position: relative; padding-bottom: 56.25%; height: 0;"><iframe src="https://jumpshare.com/embed/li1U2vOjjeZ2trFjva61" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>`;
+            infoModal.showInfo({
+                header: `Help`,
+                data: div,
+            })
+        })
+
+        addInfoButton.addEventListener("click", () => {
+
+            // const selectedGeometry = draw.getSelected()
+            // console.log('selectedGeometry', selectedGeometry);
+            // if (selectedGeometry.features.length === 0) {
+            //     alert("Please select a polygon")
+            //     return;
+            // }
+            // const id = selectedGeometry.features[0].properties.gid
+            // const polygonObj = mainData.layers.get(id)
+
+            const div = document.createElement("div")
+            const input = document.createElement("input")
+            const button = document.createElement("button")
+            button.innerText = "Add info"
+            button.addEventListener("click", () => {
+
+                addPlaceholder(input.value)
+                infoModal.closeWindow()
+            })
+
+            div.appendChild(input)
+            div.appendChild(button)
+
+            infoModal.showInfo({
+                header: `Add info to polygon`,
+                data: div,
+            })
+
+        })
+        drawButton.addEventListener("click", () => {
+            draw.changeMode('draw_polygon');
+        })
+        rotateButton.addEventListener("click", () => {
+            draw.changeMode('scaleRotateMode', ScaleRotateModeProps);
+        })
+        deleteButton.addEventListener("click", () => {
+
+            const selectedGeometry = draw.getSelected()
+            console.log('selectedGeometry', selectedGeometry);
+
+            const id = selectedGeometry.features[0].properties.gid
+
+            const polygonObj = mainData.layers.get(id)
+            polygonObj.deleteGeometry()
+            mainData.layers.delete(id)
+
+            draw.deleteAll()
+        })
+        resetButton.addEventListener("click", () => {
+
+            mainData.layers.forEach(d => {
+                d.deleteGeometry()
+            })
+            mainData.layers
+            draw.deleteAll()
+        })
+
+        map.on('draw.selectionchange', updateArea);
+
+        map.on('load', () => {
+
+            map.addSource("hillshade", {
+                type: "raster",
+                tiles: [
+                    "https://khms0.googleapis.com/kh?v=937&hl=en&x={x}&y={y}&z={z}"
+                ]
+            });
+
+            map.addLayer({
+                id: "satellite",
+                type: "raster",
+                source: "hillshade",
+                layout: {
+                    visibility: 'none'
+                }
+            }, ...drawLlayers);
+
+            map.loadImage("img/rotate.png", function (error, image) {
+                if (error) throw error;
+                map.addImage('rotate', image);
+            });
+
+            let editMode = false;
+            let drawPolygonMode = false
+
+            const popup = new mapboxgl.Popup({
+                closeButton: false,
+                closeOnClick: false,
+                offset: [0, -20]
+            });
+
+            map.on('mousemove', (e) => {
+                if (editMode) return;
+                const features = map.queryRenderedFeatures(e.point);
+                if (features.length > 0 && features[0].properties && features[0].properties.info) {
+                    const info = features[0].properties.info
+                    popup.setLngLat(e.lngLat).setHTML(info).addTo(map);
+                } else {
+                    popup.remove()
+                }
+            })
+
+            map.on('click', (e) => {
+
+                console.log('draw.getMode()', draw.getMode());
+                if (draw.getMode() === draw.modes.DRAW_POLYGON) {
+                    drawPolygonMode = true
+                    return
+                }
+
+                const features = map.queryRenderedFeatures(e.point);
+                //get the first layer geom_
+                const layers = features.filter(d => d.layer.id.includes("geom_"))
+                if (layers.length === 0) {
+                    editMode = false
+                    draw.deleteAll()
+                } else {
+                    const layer = layers[0]
+                    console.log('layer', layer);
+
+                    const id = layer.properties.gid
+                    console.log('id', id);
+
+                    const geometryObj = mainData.layers.get(id)
+                    const geometry = geometryObj.getGeometry()
+
+                    console.log('geometry', geometry);
+
+                    draw.add(geometry)
+                    editMode = true
+                }
+
+                popup.remove()
+            })
+
+            //debounce for rotation 
+            const updateFunc = (e) => {
+                const geometry = e.features[0]
+                if (!geometry) return;
+                const id = geometry.properties.gid
+                //update coordinates of the object 
+                console.log('id', id);
+                console.log('geometry-->', e.features[0]);
+
+                const geometryObj = mainData.layers.get(id)
+                geometryObj.updateGeometry(draw.getSelected())
+
+                editMode = false //SET the ability to select it again 
+                draw.deleteAll()
+            }
+            const debounceMove = _.debounce(updateFunc, 1)
+            const debounceRotate = _.debounce(updateFunc, 2000) //more time for rotate
+
+            map.on("draw.update", (e) => {
+                console.log('debouncedUpdateEvent');
+                const mode = draw.getMode()
+                const seconds = mode === "scaleRotateMode" ? debounceRotate(e) : debounceMove(e)
+
+                const selectedGeometry = draw.getSelected()
+                console.log('geometry', selectedGeometry);
+
+                const id = selectedGeometry.features[0].properties.gid
+                console.log('id', id);
+
+                const geometryObj = mainData.layers.get(id)
+                geometryObj.updateGeometry(selectedGeometry)
+
+            })
+            map.on("draw.selectionchange", (e) => {
+                console.log('draw.selectionchange',);
+            })
+            map.on("draw.modechange", (e) => {
+                console.log('draw.modechange', draw.getMode());
+                console.log('draw.modechange', draw.getSelected());
+
+                if (drawPolygonMode) {
+
+                    drawPolygonMode = false;
+
+                    const coordinates = draw.getSelected().features[0].geometry.coordinates
+                    console.log('coordinates', coordinates);
+
+                    const geometryObj = generateLayer({
+                        polyCoordinates: draw.getSelected().features[0].geometry.coordinates[0]
+                    })
+
+                    mainData.layers.set(geometryObj.layerId, {
+                        ...geometryObj
+                    })
+                }
+            })
+
+
+        })
+
+        function addPlaceholder(text) {
+            let marker;
+            const div = document.createElement('div');
+            div.className = "wrapper"
+
+            const span = document.createElement('span');
+            span.className = "close-marker"
+            span.addEventListener("click", () => {
+                marker.remove()
+            })
+
+            const el = document.createElement('div');
+            el.className = 'marker';
+            el.innerHTML = text
+
+            div.appendChild(el)
+            div.appendChild(span)
+
+            // make a marker for each feature and add it to the map
+            marker = new mapboxgl.Marker(div, { draggable: true, anchor: "left", offset: [30, 0] })
+                .setLngLat(map.getCenter())
+                .addTo(map);
+        }
+
+        function updateArea() {
+            const geometry = draw.getSelected()
+            const area = turf.area(geometry);
+            const length = turf.length(geometry, { units: 'kilometers' });
+            const data = `
+                <div class="info-box">
+                    Size of selected shape
+                    <div> ${area.toFixed(2)} m<sup>2</sup></div>
+                    <div> ${(area * 10.764).toFixed(2)} sq.ft</div>
+                    <div> ${(area / 4047).toFixed(2)} acres</div>
+                </div>
+            `
+            polygonInfo.innerHTML = `${data}`
+        }
+
+        function placeLotOnMap(data) {
+            console.log('data', data);
+
+            map.setZoom(19)//projection zoom
+            const proj = data.geometry
+            // let polyCoordinates = []
+
+            // if (proj.length > 1) {
+            //     polyCoordinates = proj.map(d => {
+            //         return [d.map(p => map.unproject(p).toArray())]
+            //     })
+            // } else {
+            //     polyCoordinates = proj[0].map(d => {
+            //         return map.unproject(d).toArray()
+            //     })
+            // }
+
+            const geometryTypes = proj.length > 1
+                ?
+                {
+                    polyCoordinates: proj.map(d => {
+                        return [d.map(p => map.unproject(p).toArray())]
+                    }),
+                    type: "multipolygon"
+                }
+                :
+                {
+                    polyCoordinates: proj[0].map(d => {
+                        return map.unproject(d).toArray()
+                    }),
+                    type: "polygon"
+                }
+
+            const geometryObj = generateLayer({
+                ...geometryTypes,
+                fillColor: data.fillColor,
+                opacity: data.opacity,
+                isImageLayer: data.hasOwnProperty("backgroundImage") ? data.backgroundImage : false
+            })
+
+            mainData.layers.set(geometryObj.layerId, {
+                ...geometryObj
+            })
+        }
+
+        function generateLayer({ polyCoordinates, type = "polygon", fillColor = "#0080ff", opacity = 0.5, isImageLayer = false }) {
+
+            const layerId = generateId()
+            const geometryLayer = 'geom_' + layerId
+            const imageLayer = 'image_' + layerId
+
+            console.log('polyCoordinates', polyCoordinates);
+
+            let polygon = type === "polygon"
+                ? turf.polygon([polyCoordinates], { gid: layerId })
+                : turf.multiPolygon(polyCoordinates, { gid: layerId })
+
+            map.addSource(geometryLayer, {
+                'type': 'geojson',
+                'data': polygon
+            });
+
+            // Add a new layer to visualize the polygon.
+            map.addLayer({
+                'id': geometryLayer,
+                'type': 'fill',
+                'source': geometryLayer, // reference the data source
+                'layout': {},
+                'paint': {
+                    'fill-color': fillColor, // blue color fill
+                    'fill-opacity': opacity
+                }
+            });
+
+            if (isImageLayer) {
+                map.addSource(imageLayer, {
+                    'type': 'image',
+                    'url': isImageLayer,
+                    'coordinates': polyCoordinates.slice(0, 4)
+                });
+                map.addLayer({
+                    'id': imageLayer,
+                    'type': 'raster',
+                    'source': imageLayer,
+                    'paint': {
+                        'raster-fade-duration': 0,
+                        'raster-opacity': 0.95
+                    }
+                });
+            }
+
+            function updateGeometry(geometry) {
+                polygon = geometry
+                const coords = turf.getCoords(polygon.features[0])[0].slice(0, 4)
+                !map.getSource(geometryLayer) && console.error("Layer does not exist")
+                map.getSource(geometryLayer) && map.getSource(geometryLayer).setData(polygon)
+                map.getSource(imageLayer) && map.getSource(imageLayer).setCoordinates(coords)
+            }
+
+            function updateInfo(info) {
+                polygon.properties.info = info
+                !map.getSource(geometryLayer) && console.error("Layer does not exist")
+                map.getSource(geometryLayer) && map.getSource(geometryLayer).setData(polygon)
+            }
+
+            function getGeometry() {
+                return polygon;
+            }
+
+            function deleteGeometry() {
+
+                map.getLayer(geometryLayer) && map.removeLayer(geometryLayer)
+                map.getLayer(imageLayer) && map.removeLayer(imageLayer)
+
+                map.getSource(geometryLayer) && map.removeSource(geometryLayer)
+                map.getSource(imageLayer) && map.removeSource(imageLayer)
+            }
+
+            return Object.freeze({
+                layerId,
+                updateGeometry,
+                updateInfo,
+                getGeometry,
+                deleteGeometry
+            })
+        }
+
+        function generateId() {
+            return (new Date()).getTime()
+        }
+
+        function getGeometry() {
+            map.setZoom(19)
+            map.once("idle", () => {
+                const g = draw.getSelected();
+                const coords = g.features[0].geometry.coordinates[0]
+                const projections = coords.map(d => {
+                    console.log('d', d);
+                    return map.project(d)
+                })
+                console.log('pro', JSON.stringify(projections));
+            })
+        }
+
+        // function updateArea(e) {
+        //     const data = draw.getAll();
+        //     console.log('data', ...data.features[0].geometry.coordinates);
+        //     const square = data.features[0].geometry.coordinates[0]
+        //     square.pop()
+        //     map.getSource("parking").setCoordinates(square)
+        // }
+
+        function createLotButton(data, clickEvent) {
+
+            const div = document.createElement('div')
+            div.addEventListener("click", () => typeof clickEvent === 'function' && clickEvent())
+            div.className = "lot-button"
+            div.innerText = data.name
+            div.style.backgroundColor = "white"
+            div.style.border = "2px solid #ccc"
+            div.style.backgroundImage = `url(${data.buttonIconImage})`
+            div.style.backgroundPosition = "center 45px"
+            div.style.backgroundRepeat = "no-repeat"
+            div.style.backgroundSize = "30px" /* Resize the background image to cover the entire container */
+            return div
+        }
+
+
+        function initMap() {
+            const input = document.getElementById("search");
+            const autocomplete = new google.maps.places.Autocomplete(input);
+            autocomplete.addListener("place_changed", () => {
+                const place = autocomplete.getPlace();
+                if (!place.geometry || !place.geometry.location) {
+                    window.alert("No details available for input: '" + place.name + "'");
+                    return;
+                }
+                console.log('place.geometry', place.geometry);
+                // if (place.geometry.viewport) {
+                //     map.fitBounds(place.geometry.viewport);
+                // } else {
+                //     map.setCenter(place.geometry.location);
+                //     map.setZoom(17);
+                // }
+                const { lat, lng } = place.geometry.location.toJSON()
+                map.flyTo({
+                    center: { lat, lng },
+                    zoom: 19
+                })
+
+                // if (userMarker) userMarker.remove();
+
+                // userMarker = new mapboxgl.Marker({ color: 'blue' })
+                //     .setLngLat({ lat, lng })
+                //     .addTo(map);
+
+                // userPosition.lat = lat
+                // userPosition.lng = lng
+            });
+        }
+
+
+
+        function buildCategoryFilters(data) {
+
+            const sectorsArr = data.map(store => store.sector.split(",").map(i => i.trim())).flat().filter(i => i !== "")
+            const sector = [...new Set(sectorsArr)]
+            const checkboxes = sector.map(name => {
+
+                const checkbox = buildDivBox(name, false, sectorName => {
+
+                    var index = selectedSectors.indexOf(sectorName);
+                    if (index !== -1) {
+                        selectedSectors.splice(index, 1);
+                    } else {
+                        selectedSectors.push(sectorName)
+                    }
+
+                    const shopNames = shopData.filter(shop => {
+                        return selectedSectors.length > 0 && selectedSectors.every(elem => shop.sectors.includes(elem))
+                    })
+
+                    const pins = shopNames
+                        .map(pin => {
+                            const { property_latitude, property_longitude } = pin
+                            return {
+                                "type": "Feature", "properties": { ...pin, },
+                                "geometry": {
+                                    "type": "Point", "coordinates": [+property_longitude, +property_latitude]
+                                }
+                            }
+                        })
+                    const featureCollection = turf.featureCollection(pins)
+                    map.getSource("store").setData(featureCollection)
+                })
+                sectorsDiv.appendChild(checkbox)
+
+                return checkbox
+            })
+            return checkboxes
+        }
+
+        function buildStoreFilters(data) {
+
+            const names = [...new Set(data.map(store => store.company_name).sort())]
+            console.log('names', names);
+            names.forEach(name => {
+                const checkbox = buildCheckBox(name, selectedShops.includes(name), e => {
+                    console.log('name', e);
+                    const checked = e.target.checked
+                    const value = e.target.id
+                    if (checked) {
+                        selectedShops.push(value)
+                    } else {
+                        var index = selectedShops.indexOf(value);
+                        if (index !== -1) {
+                            selectedShops.splice(index, 1);
+                        }
+                    }
+                    filterByShopNameS(selectedShops)
+                })
+                shopList.appendChild(checkbox)
+            })
+        }
+
+        function buildCheckBox(name, checked, eventFunction) {
+            const div = document.createElement("div")
+            const checkbox = document.createElement('input');
+            checkbox.type = "checkbox";
+            checkbox.name = "name";
+            checkbox.value = name;
+            checkbox.id = name;
+            checkbox.addEventListener("input", eventFunction)
+            checkbox.checked = checked
+            var label = document.createElement('label')
+            label.htmlFor = name;
+            label.appendChild(document.createTextNode(name));
+            div.appendChild(checkbox);
+            div.appendChild(label);
+            return div
+        }
+
+        function buildDivBox(name, checked, eventFunction) {
+
+            let active = false;
+            const div = document.createElement("div")
+            div.className = 'div-box'
+            div.id = name;
+            div.addEventListener("click", () => {
+                active = !active
+                console.log('active', active);
+
+                if (active) {
+                    div.classList.add("div-box-active")
+                } else {
+                    div.classList.remove("div-box-active")
+                }
+
+                eventFunction(name)
+            })
+            const iconName = name.toLowerCase().trim()
+            console.log('iconsName', iconName);
+            const img = document.createElement("img")
+            img.src = `icons/${iconName}.svg`
+            img.style.width = "30px"
+            img.style.height = "30px"
+            const label = document.createElement("div")
+            label.innerText = name
+            div.appendChild(img)
+            div.appendChild(label);
+            return div
+        }
+
+
+        function filterByShopName() {
+            const name = shopName.value;
+            map.setFilter('store', ['==', 'company_name', name]);
+            map.setFilter('storeLogo', ['==', 'company_name', name]);
+        }
+
+        function createModal() {
+            const modalWindow = document.getElementById("modal-info")
+            const modalWindowBody = document.getElementById("modal-window-body")
+            const closeModal = document.getElementById("close-modal-info")
+            const modalWindowHeader = document.getElementById("modal-info-header")
+
+            closeModal.addEventListener("click", () => {
+                closeWindow()
+            })
+
+            function closeWindow() {
+                modalWindow.style.display = "none"
+                modalWindowBody.replaceChildren()
+                modalWindowHeader.innerText = ""
+            }
+
+            function setData({ data, header = "" }) {
+                modalWindowBody.appendChild(data)
+                modalWindowHeader.innerText = header
+            }
+            function showInfo({ data, header }) {
+                setData({ data, header });
+                modalWindow.style.display = "flex"
+            }
+
+            return {
+                showInfo,
+                closeWindow
+            }
+        }
+
+
+
+        function filterByShopNameS(shopNameArray) {
+
+            console.log('shopNameArray', shopNameArray);
+            const pins = shopData
+                .filter(pin => shopNameArray.includes(pin.company_name))
+                .map(pin => {
+                    const { property_latitude, property_longitude } = pin
+                    return {
+                        "type": "Feature", "properties": { ...pin, },
+                        "geometry": {
+                            "type": "Point", "coordinates": [+property_longitude, +property_latitude]
+                        }
+                    }
+                })
+            const featureCollection = turf.featureCollection(pins)
+            map.getSource("store").setData(featureCollection)
+        }
+
+    </script>
+
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBrK7zAmbEFKIyv_g6XOE3WpSq34nOYuEI&callback=initMap&libraries=places&v=weekly"
+        defer></script>
+
+</body>
+
+</html>
