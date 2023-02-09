@@ -576,10 +576,10 @@
                 const seconds = mode === "scaleRotateMode" ? debounceRotate(e) : debounceMove(e)
 
                 const selectedGeometry = draw.getSelected()
-                console.log('geometry', selectedGeometry);
+                // console.log('geometry', selectedGeometry);
 
                 const id = selectedGeometry.features[0].properties.gid
-                console.log('id', id);
+                // console.log('id', id);
 
                 const geometryObj = mainData.layers.get(id)
                 geometryObj.updateGeometry(selectedGeometry)
@@ -743,6 +743,8 @@
             }
 
             function updateGeometry(geometry) {
+                //console.log('geometry',geometry);
+                if (!geometry || !geometry.features[0]) return;
                 polygon = geometry
                 const coords = turf.getCoords(polygon.features[0])[0].slice(0, 4)
                 !map.getSource(geometryLayer) && console.error("Layer does not exist")
@@ -761,7 +763,6 @@
             }
 
             function deleteGeometry() {
-
                 map.getLayer(geometryLayer) && map.removeLayer(geometryLayer)
                 map.getLayer(imageLayer) && map.removeLayer(imageLayer)
 
