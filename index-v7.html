@@ -30,6 +30,11 @@
         .lot-button {
             /* width: 70px;
             height: 70px; */
+            display: flex;
+            align-content: center;
+            align-items: center;
+            flex-direction: row-reverse;
+            justify-content: flex-end;
         }
 
         #lots {
@@ -254,7 +259,11 @@
                 geometry: [[{ "x": 277.6560297612544, "y": 335.86451180158457 }, { "x": 60.65603009322492, "y": 603.8645117383521 }, { "x": 631.6560304093873, "y": 1069.8645120545145 }, { "x": 851.6560301880736, "y": 798.8645120228982 }, { "x": 277.6560297612544, "y": 335.86451180158457 }]],
                 fillColor: "white",
                 opacity: 0.9,
-                buttonIconImage: "img/shopping-cart.png"
+                buttonIconImage: "img/shopping-cart.png",
+                icons: [
+                    'img/logos/aldi.png',
+                    'img/logos/lidl.png',
+                ]
             },
             {
                 name: "C-store - (3,600 sq.ft GIA)",
@@ -280,7 +289,11 @@
                 ],
                 fillColor: "white",
                 opacity: 0.9,
-                buttonIconImage: "img/coffee.png"
+                buttonIconImage: "img/coffee.png",
+                icons: [
+                    'img/logos/costa.png',
+                    'img/logos/starbucks.png',
+                ]
             },
 
             {
@@ -809,13 +822,27 @@
             const div = document.createElement('div')
             div.addEventListener("click", () => typeof clickEvent === 'function' && clickEvent())
             div.className = "lot-button"
-            div.innerText = data.name
+            div.innerText = data.name + ""
             div.style.backgroundColor = "white"
             //div.style.border = "2px solid #ccc"
             // div.style.backgroundImage = `url(${data.buttonIconImage})`
             // div.style.backgroundPosition = "center 45px"
             // div.style.backgroundRepeat = "no-repeat"
             // div.style.backgroundSize = "30px" /* Resize the background image to cover the entire container */
+
+            const imagesDiv = document.createElement('div')
+            imagesDiv.style.marginRight = "5px"
+            const images = data.icons && data.icons.map(d => {
+                const img = document.createElement('img')
+                img.src = d
+                img.style.width = "20px"
+                img.style.height = "20px"
+                img.style.objectFit = "cover"
+                imagesDiv.appendChild(img)
+            })
+
+            div.appendChild(imagesDiv)
+
             return div
         }
 
