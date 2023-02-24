@@ -19,6 +19,17 @@
     <link href="css/main.css" rel="stylesheet">
 
     <style>
+        .sectors {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr !important;
+            /* grid-template-rows: 1fr 1fr 1fr; */
+            /* grid-gap: 3px; */
+        }
+
+        .sectors :nth-child(n + 4) {
+            grid-column: span 3;
+        }
+
         .mapboxgl-ctrl-top-right {
             display: none;
         }
@@ -239,19 +250,19 @@
 
         const lots = [
             {
-                name: "5 parking spaces",
+                name: "5 parking",
                 geometry: [[{ "x": 478, "y": 608 }, { "x": 478, "y": 665 }, { "x": 612, "y": 665 }, { "x": 612, "y": 608 }, { "x": 478, "y": 608 }]],
                 backgroundImage: "img/5-parking-lot1.png",
                 buttonIconImage: "img/car.png"
             },
             {
-                name: "10 parking spaces",
+                name: "10 parking",
                 geometry: [[{ "x": 379, "y": 629 }, { "x": 379, "y": 683 }, { "x": 603, "y": 683 }, { "x": 603, "y": 629 }, { "x": 379, "y": 629 }]],
                 backgroundImage: "img/10-parking-lot1.png",
                 buttonIconImage: "img/car.png"
             },
             {
-                name: "15 parking spaces",
+                name: "15 parking",
                 geometry: [[{ "x": 379, "y": 629 }, { "x": 379, "y": 683 }, { "x": 715, "y": 683 }, { "x": 715, "y": 629 }, { "x": 379, "y": 629 }]],
                 backgroundImage: "img/15-parking-lot1.png",
                 buttonIconImage: "img/car.png"
