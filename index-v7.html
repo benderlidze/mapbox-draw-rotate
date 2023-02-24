@@ -204,6 +204,7 @@
         <div class="item-header">
             <span class="" id="resetSectors">Reset</span>
             <span id="help" class="buttons help-button">Tutorial</span>
+            <span id="screenshot" class="buttons help-button">Screenshot</span>
         </div>
 
 
@@ -226,6 +227,7 @@
         const resetButton = document.getElementById("resetSectors");
         const helpButton = document.getElementById("help");
         const addInfoButton = document.getElementById("addInfo");
+        const screenshot = document.getElementById("screenshot");
 
         const mainData = {
             layers: new Map()
@@ -464,7 +466,8 @@
             // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
             style: 'mapbox://styles/mapbox/light-v9', // style URL
             center: { lng: -2.3557848895820825, lat: 53.43698508344528 },
-            zoom: 6 // starting zoom
+            zoom: 6, // starting zoom
+            preserveDrawingBuffer: true,
         });
         map.doubleClickZoom.disable();
 
@@ -488,6 +491,19 @@
             rotationPointRadius: 1.2, // offset rotation point
             canSelectFeatures: true,
         }
+
+        //make a screenshot on click
+        screenshot.addEventListener("click", () => {
+            map.getCanvas().toBlob(function (blob) {
+                // Create a download link for the image
+                var link = document.createElement('a');
+                link.download = 'screenshot.png';
+                link.href = URL.createObjectURL(blob);
+                link.click();
+                // Show the screenshot button again
+                screenshotBtn.style.display = 'block';
+            });
+        })
 
         satelliteLayer && satelliteLayer.addEventListener("input", function () {
             if (satelliteLayer.checked) {
