@@ -543,6 +543,7 @@
                     'img/logos/travelodge.png',
                 ],
                 propertyImage: 'img/property/Weston travelodge.jpeg',
+                imageHeader: 'Object traced from 84 bed Travelodge Hotel in Weston Super Mare'
             },
         ]
 
@@ -1074,7 +1075,7 @@
                     div.setAttribute("style", "display: flex; align-items: center; justify-content: center;")
                     div.innerHTML = `<img src="${data.propertyImage}">`;
                     infoModal.showInfo({
-                        header: `Property Image`,
+                        header: data.imageHeader || `Image`,
                         data: div,
                     })
 
