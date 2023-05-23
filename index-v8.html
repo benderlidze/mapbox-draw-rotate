@@ -630,7 +630,7 @@
         })
 
         satelliteLayer && satelliteLayer.addEventListener("input", function () {
-            console.log('111',111);
+            console.log('111', 111);
             if (satelliteLayer.checked) {
                 map.setLayoutProperty('satellite', 'visibility', 'visible');
             } else {
@@ -713,8 +713,8 @@
             map.addSource("hillshade", {
                 type: "raster",
                 tiles: [
-                    "https://khms1.googleapis.com/kh?v=946&hl=en&x={x}&y={y}&z={z}"
-                     
+                    "https://khms1.googleapis.com/kh?v=946&hl=en&x={x}&y={y}&z={z}",
+                    "https://khms0.googleapis.com/kh?v=946&hl=en&x={x}&y={y}&z={z}",
                 ]
             });
 
