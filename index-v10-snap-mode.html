@@ -18,6 +18,8 @@
     <link href="css/toggle.css" rel="stylesheet">
     <link href="css/main.css" rel="stylesheet">
 
+    <script src="https://unpkg.com/mapbox-gl-draw-snap-mode"></script>
+
     <style>
         .sectors {
             display: grid;
@@ -261,9 +263,12 @@
         *Double click to measure an object
     </div>
 
+    <div id="polygon-props-container"></div>
+
     <div id="map"></div>
 
     <script>
+        const polygonPropsDiv = document.getElementById('polygon-props-container');
         const satelliteLayer = document.getElementById('satelliteLayer');
         const drawButton = document.getElementById("draw");
         const deleteButton = document.getElementById("delete");
@@ -374,25 +379,56 @@
             }
         });
 
+
+        const {
+            SnapPolygonMode,
+            SnapPointMode,
+            SnapLineMode,
+            SnapModeDrawStyles,
+            SnapDirectSelect,
+        } = mapboxGlDrawSnapMode;
+
         mapboxgl.accessToken = 'pk.eyJ1Ijoic2VyZ2JlciIsImEiOiJja3dwOWgzeGQwYWdyMm9xb2pkMDFvYmNuIn0.H9AJ_NLmDNYMed6dvu_Q0A';
         const map = new mapboxgl.Map({
             container: 'map', // container ID
             // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
             style: 'mapbox://styles/mapbox/light-v9', // style URL
-            center: { lng: -2.3557848895820825, lat: 53.43698508344528 },
-            zoom: 6, // starting zoom
+            center: { lng: -2.134943230363888, lat: 52.98713803343554 },
+            zoom: 18.332148527852908, // starting zoom
             preserveDrawingBuffer: true,
         });
         map.doubleClickZoom.disable();
 
+        // const draw = new MapboxDraw({
+        //     userProperties: true,
+        //     //  displayControlsDefault: false,
+        //     styles: ScaleRotateMode.SRStyle,
+        //     modes: Object.assign(MapboxDraw.modes, {
+        //         scaleRotateMode: ScaleRotateMode.SRMode,
+        //     }),
+        // });
+
         const draw = new MapboxDraw({
+            modes: {
+                ...MapboxDraw.modes,
+                draw_point: SnapPointMode,
+                draw_polygon: SnapPolygonMode,
+                draw_line_string: SnapLineMode,
+                direct_select: SnapDirectSelect,
+            },
+            styles: SnapModeDrawStyles,
             userProperties: true,
-            //  displayControlsDefault: false,
-            styles: ScaleRotateMode.SRStyle,
-            modes: Object.assign(MapboxDraw.modes, {
-                scaleRotateMode: ScaleRotateMode.SRMode,
-            }),
+            snap: true,
+            // overlap: false,
+            snapOptions: {
+                snapPx: 15,
+                snapToMidPoints: true,
+                snapVertexPriorityDistance: 0.0025
+            },
+            guides: false,
         });
+
+
         map.addControl(draw);
 
         const ScaleRotateModeProps = {
@@ -439,35 +475,60 @@
         })
 
         addInfoButton.addEventListener("click", () => {
-
-            // const selectedGeometry = draw.getSelected()
-            // console.log('selectedGeometry', selectedGeometry);
-            // if (selectedGeometry.features.length === 0) {
-            //     alert("Please select a polygon")
-            //     return;
-            // }
-            // const id = selectedGeometry.features[0].properties.gid
-            // const polygonObj = mainData.layers.get(id)
-
             const div = document.createElement("div")
             const input = document.createElement("input")
             const button = document.createElement("button")
             button.innerText = "Add info"
             button.addEventListener("click", () => {
 
-                addPlaceholder(input.value)
+                const { lat, lng } = map.getCenter()
+                map.addLayer({
+                    'id': "text_" + new Date().getTime(),
+                    'type': 'symbol',
+                    'source': {
+                        'type': 'geojson',
+                        'data': {
+                            'type': 'FeatureCollection',
+                            'features': [
+                                {
+                                    'type': 'Feature',
+                                    'geometry': {
+                                        'type': 'Point',
+                                        'coordinates': [lng, lat]
+                                    },
+                                    'properties': {
+                                        'name': input.value,
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    'layout': {
+                        'text-field': ['get', 'name'],
+                        'text-font': [
+                            'Open Sans Semibold',
+                            'Arial Unicode MS Bold'
+                        ],
+                        'text-size': ['interpolate', ['linear'], ['zoom'], 0, 0, 14, 0, 16, 8, 19, 20,],
+                        'text-rotate': 0,
+                        'text-allow-overlap': true,
+                        'text-ignore-placement': true,
+                        'text-anchor': 'center',
+                        'text-justify': 'center',
+                        'text-offset': [0, 0]
+                    }
+                });
+
                 infoModal.closeWindow()
             })
-
             div.appendChild(input)
             div.appendChild(button)
-
             infoModal.showInfo({
                 header: `Add info to polygon`,
                 data: div,
             })
-
         })
+
         drawButton.addEventListener("click", () => {
             draw.changeMode('draw_polygon');
         })
@@ -575,10 +636,190 @@
                         id,
                         geometry
                     }
+
+                    if (geometry) {
+                        generatePropWindow(geometry)
+                    }
                 }
 
                 popup.remove()
             })
+
+            function generatePropWindow(geometry) {
+                console.log('geometry', geometry);
+                const id = geometry.properties.gid
+                const color = geometry.properties.fillColor || "#0080ff"
+                const name = geometry.properties.name || ""
+                const number = geometry.properties.number || ""
+                const image = "https://nikolsky.com.ua/wp-content/uploads/2021/02/house.png" || ""
+
+                const saveButton = document.createElement("button")
+                saveButton.innerText = "Save"
+                saveButton.addEventListener("click", () => {
+                    console.log('save data');
+                    map.setPaintProperty("geom_" + id, 'fill-color', geometry.properties.fillColor)
+                    geometry.properties.fillColor = colorInput.value
+                    geometry.properties.name = nameInput.value
+                    geometry.properties.number = numberInput.value
+                    geometry.properties.image = image
+                    generateLayers(geometry)
+                })
+
+                const div = document.createElement("div")
+                const colorText = document.createElement("div")
+                colorText.innerText = "Set color"
+                const colorInput = document.createElement("input")
+                colorInput.className = "color-input"
+                colorInput.type = "color"
+                colorInput.value = color
+                colorInput.addEventListener("input", e => {
+                    const color = e.target.value
+                    geometry.properties.fillColor = color
+                })
+
+                const nameInput = document.createElement("input")
+                nameInput.placeholder = "set name"
+                nameInput.value = name
+
+                const numberInput = document.createElement("input")
+                numberInput.placeholder = "set number"
+                numberInput.value = name
+
+
+
+                const fileInput = document.createElement("input")
+                fileInput.type = "file"
+                fileInput.accept = "image/png, image/jpeg, image/gif , image/webp"
+                fileInput.addEventListener('change', (event) => {
+                    const image = "https://nikolsky.com.ua/wp-content/uploads/2021/02/house.png"
+                });
+
+                div.appendChild(colorText)
+                div.appendChild(colorInput)
+                div.appendChild(nameInput)
+                div.appendChild(numberInput)
+                div.appendChild(fileInput)
+
+                div.appendChild(saveButton)
+                polygonPropsDiv.replaceChildren(div)
+            }
+
+            function generateLayers(geometry) {
+                console.log('geometry', geometry);
+                const id = geometry.properties.gid
+                const name = geometry.properties.name || ""
+                const number = geometry.properties.number || ""
+                const center = turf.centerOfMass(geometry)
+                const [lng, lat] = turf.getCoords(center)
+                const firstCoordinate = turf.getCoords(geometry)[0][0]
+
+
+                const textID = "text_" + id
+                const numberID = "number_" + id
+                const logoID = "logo_" + id
+
+                map.addSource(textID, {
+                    'type': 'geojson',
+                    'data': {
+                        'type': 'FeatureCollection',
+                        'features': [
+                            {
+                                'type': 'Feature',
+                                'geometry': {
+                                    'type': 'Point',
+                                    'coordinates': [lng, lat]
+                                },
+                                'properties': {
+                                    'name': name
+                                }
+                            }
+                        ]
+                    }
+                })
+
+                map.addLayer({
+                    'id': textID,
+                    'type': 'symbol',
+                    'source': textID,
+                    'layout': {
+                        'text-field': ['get', 'name'],
+                        'text-font': [
+                            'Open Sans Semibold',
+                            'Arial Unicode MS Bold'
+                        ],
+                        'text-size': ['interpolate', ['linear'], ['zoom'], 0, 0, 14, 0, 16, 8, 19, 20,],
+                        'text-rotate': 0,
+                        'text-allow-overlap': true,
+                        'text-ignore-placement': true,
+                        'text-anchor': 'center',
+                        'text-justify': 'center',
+                        'text-offset': [0, 0]
+                    }
+                });
+
+                map.addSource(numberID, {
+                    'type': 'geojson',
+                    'data': {
+                        'type': 'FeatureCollection',
+                        'features': [
+                            {
+                                'type': 'Feature',
+                                'geometry': {
+                                    'type': 'Point',
+                                    'coordinates': firstCoordinate
+                                },
+                                'properties': {
+                                    'name': number
+                                }
+                            }
+                        ]
+                    }
+                })
+                map.addLayer({
+                    'id': numberID,
+                    'type': 'symbol',
+                    'source': numberID,
+                    'layout': {
+                        'text-field': ['get', 'name'],
+                        'text-font': [
+                            'Open Sans Semibold',
+                            'Arial Unicode MS Bold'
+                        ],
+                        'text-size': ['interpolate', ['linear'], ['zoom'], 0, 0, 14, 0, 16, 8, 19, 20,],
+                        'text-rotate': 0,
+                        'text-allow-overlap': true,
+                        'text-ignore-placement': true,
+                        'text-anchor': 'center',
+                        'text-justify': 'center',
+                        'text-offset': [0, 0]
+                    }
+                });
+
+
+
+                //draw sqaure
+                const radius = 0.01;
+                const options = { steps: 25, units: 'kilometers' };
+                const circle = turf.circle(center, radius, options);
+
+                const bbox = turf.bbox(circle)
+                const bboxPolygon = turf.bboxPolygon(bbox)
+                const rotationAngle = 0;   // in degrees
+                const rotatedPolygon = turf.transformRotate(bboxPolygon, rotationAngle);
+                const rotatedCoords = (turf.getCoords(rotatedPolygon))[0].slice(0, 4);
+
+                map.addSource(logoID, {
+                    'type': 'image',
+                    'url': 'img/logos/starbucks.png',
+                    'coordinates': rotatedCoords
+                })
+                map.addLayer({
+                    'id': logoID,
+                    'type': 'raster',
+                    'source': logoID,
+                });
+
+            }
 
             //debounce for rotation 
             const updateFunc = (e) => {
@@ -684,18 +925,6 @@
 
             map.setZoom(19)//projection zoom
             const proj = data.geometry
-            // let polyCoordinates = []
-
-            // if (proj.length > 1) {
-            //     polyCoordinates = proj.map(d => {
-            //         return [d.map(p => map.unproject(p).toArray())]
-            //     })
-            // } else {
-            //     polyCoordinates = proj[0].map(d => {
-            //         return map.unproject(d).toArray()
-            //     })
-            // }
-
             const geometryTypes = proj.length > 1
                 ?
                 {
