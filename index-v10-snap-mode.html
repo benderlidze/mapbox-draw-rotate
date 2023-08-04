@@ -647,22 +647,28 @@
 
             function generatePropWindow(geometry) {
                 console.log('geometry', geometry);
-                const id = geometry.properties.gid
-                const color = geometry.properties.fillColor || "#0080ff"
-                const name = geometry.properties.name || ""
-                const number = geometry.properties.number || ""
+
+                let polygon = geometry
+                if (geometry.type && geometry.type === "FeatureCollection") {
+                    polygon = geometry.features[0]
+                }
+
+                const id = polygon.properties.gid
+                const color = polygon.properties.fillColor || "#0080ff"
+                const name = polygon.properties.name || ""
+                const number = polygon.properties.number || ""
                 const image = "https://nikolsky.com.ua/wp-content/uploads/2021/02/house.png" || ""
 
                 const saveButton = document.createElement("button")
                 saveButton.innerText = "Save"
                 saveButton.addEventListener("click", () => {
                     console.log('save data');
-                    map.setPaintProperty("geom_" + id, 'fill-color', geometry.properties.fillColor)
-                    geometry.properties.fillColor = colorInput.value
-                    geometry.properties.name = nameInput.value
-                    geometry.properties.number = numberInput.value
-                    geometry.properties.image = image
-                    generateLayers(geometry)
+                    map.setPaintProperty("geom_" + id, 'fill-color', polygon.properties.fillColor)
+                    polygon.properties.fillColor = colorInput.value
+                    polygon.properties.name = nameInput.value
+                    polygon.properties.number = numberInput.value
+                    polygon.properties.image = image
+                    generateLayers(polygon)
                 })
 
                 const div = document.createElement("div")
@@ -674,17 +680,25 @@
                 colorInput.value = color
                 colorInput.addEventListener("input", e => {
                     const color = e.target.value
-                    geometry.properties.fillColor = color
+                    polygon.properties.fillColor = color
+                    generateLayers(polygon)
                 })
 
                 const nameInput = document.createElement("input")
                 nameInput.placeholder = "set name"
                 nameInput.value = name
+                nameInput.addEventListener("input", e => {
+                    polygon.properties.name = e.target.value
+                    generateLayers(polygon)
+                })
 
                 const numberInput = document.createElement("input")
                 numberInput.placeholder = "set number"
-                numberInput.value = name
-
+                numberInput.value = number
+                numberInput.addEventListener("input", e => {
+                    polygon.properties.number = e.target.value
+                    generateLayers(polygon)
+                })
 
 
                 const fileInput = document.createElement("input")
@@ -694,11 +708,38 @@
                     const image = "https://nikolsky.com.ua/wp-content/uploads/2021/02/house.png"
                 });
 
+                const imageSizeSlider = document.createElement("input")
+                imageSizeSlider.type = "range"
+                imageSizeSlider.min = 0
+                imageSizeSlider.max = 50
+                imageSizeSlider.value = 5
+                imageSizeSlider.addEventListener("input", e => {
+                    const value = e.target.value
+                    polygon.properties.imageSize = value
+                    console.log('value', value);
+                    generateLayers(polygon)
+                })
+
+                const imageAngleSlider = document.createElement("input")
+                imageAngleSlider.type = "range"
+                imageAngleSlider.min = 0
+                imageAngleSlider.max = 360
+                imageAngleSlider.value = 5
+                imageAngleSlider.addEventListener("input", e => {
+                    const value = e.target.value
+                    polygon.properties.imageAngle = value
+                    console.log('value', value);
+                    generateLayers(polygon)
+                })
+
+
                 div.appendChild(colorText)
                 div.appendChild(colorInput)
                 div.appendChild(nameInput)
                 div.appendChild(numberInput)
                 div.appendChild(fileInput)
+                div.appendChild(imageSizeSlider)
+                div.appendChild(imageAngleSlider)
 
                 div.appendChild(saveButton)
                 polygonPropsDiv.replaceChildren(div)
@@ -706,19 +747,98 @@
 
             function generateLayers(geometry) {
                 console.log('geometry', geometry);
-                const id = geometry.properties.gid
-                const name = geometry.properties.name || ""
-                const number = geometry.properties.number || ""
-                const center = turf.centerOfMass(geometry)
+
+                let polygon = geometry
+                if (geometry.type && geometry.type === "FeatureCollection") {
+                    polygon = geometry.features[0]
+                }
+
+                addLogo(polygon)
+                addName(polygon)
+                addNumber(polygon)
+
+            }
+
+            function addLogo(polygon) {
+
+                const id = polygon.properties.gid
+                const layerID = "logo_" + id
+
+                const center = turf.centerOfMass(polygon)
+
+                //draw sqaure
+                const radius = 0.001 * polygon.properties.imageSize || 0.001;
+                const options = { steps: 25, units: 'kilometers' };
+                const circle = turf.circle(center, radius, options);
+
+                const bbox = turf.bbox(circle)
+                const bboxPolygon = turf.bboxPolygon(bbox)
+                const rotationAngle = polygon.properties.imageAngle || 180;   // in degrees
+                const rotatedPolygon = turf.transformRotate(bboxPolygon, +rotationAngle);
+                const rotatedCoords = (turf.getCoords(rotatedPolygon))[0].slice(0, 4);
+
+                map.getLayer(layerID) && map.removeLayer(layerID)
+                map.getSource(layerID) && map.removeSource(layerID)
+
+                map.addSource(layerID, {
+                    'type': 'image',
+                    'url': 'img/logos/starbucks.png',
+                    'coordinates': rotatedCoords
+                })
+                map.addLayer({
+                    'id': layerID,
+                    'type': 'raster',
+                    'source': layerID,
+                });
+                return layerID
+            }
+
+            function addName(polygon) {
+                const id = polygon.properties.gid
+                const name = polygon.properties.name || ""
+                const center = turf.centerOfMass(polygon)
                 const [lng, lat] = turf.getCoords(center)
-                const firstCoordinate = turf.getCoords(geometry)[0][0]
+
+                const layerID = "text_" + id
+
+                //find the longest edge of the polygon 
 
 
-                const textID = "text_" + id
-                const numberID = "number_" + id
-                const logoID = "logo_" + id
+                //run through every edge of the polygon 
+                const edges = turf.getCoords(polygon)[0]
+                const edgeLengths = edges.map((d, i) => {
+                    if (i === edges.length - 1) {
 
-                map.addSource(textID, {
+                        const point1 = turf.point(d);
+                        const point2 = turf.point(edges[0]);
+                        const bearing = turf.bearing(point1, point2);
+
+                        return {
+                            d: turf.distance(d, edges[0]), b: bearing
+                        }
+                    }
+
+                    const point1 = turf.point(d);
+                    const point2 = turf.point(edges[i + 1]);
+                    const bearing = turf.bearing(point1, point2);
+
+                    return {
+                        d: turf.distance(d, edges[i + 1]),
+                        b: bearing
+                    }
+                }).reduce((r, a) => {
+                    if (a.d > r.d) {
+                        return a
+                    }
+                    return r
+                }, { d: 0, b: 0 })
+
+                const bearing = edgeLengths.b + 90
+
+                map.getLayer(layerID) && map.removeLayer(layerID)
+                map.getSource(layerID) && map.removeSource(layerID)
+
+                map.addSource(layerID, {
                     'type': 'geojson',
                     'data': {
                         'type': 'FeatureCollection',
@@ -738,9 +858,9 @@
                 })
 
                 map.addLayer({
-                    'id': textID,
+                    'id': layerID,
                     'type': 'symbol',
-                    'source': textID,
+                    'source': layerID,
                     'layout': {
                         'text-field': ['get', 'name'],
                         'text-font': [
@@ -748,16 +868,48 @@
                             'Arial Unicode MS Bold'
                         ],
                         'text-size': ['interpolate', ['linear'], ['zoom'], 0, 0, 14, 0, 16, 8, 19, 20,],
-                        'text-rotate': 0,
+                        'text-rotate': bearing,
                         'text-allow-overlap': true,
                         'text-ignore-placement': true,
                         'text-anchor': 'center',
                         'text-justify': 'center',
-                        'text-offset': [0, 0]
+                        'text-offset': [0, 4],
+                        "text-rotation-alignment": "map",
+                    },
+                    'paint': {
+                        "text-halo-width": 2,
+                        "text-halo-blur": 2,
+                        "text-halo-color": "#fff"
                     }
                 });
 
-                map.addSource(numberID, {
+            }
+
+            function nameClick(e) {
+                console.log('!!!!!!!!!!!!!!!!', e);
+            }
+            function nameMouseOver(e) {
+                console.log('nameMouseOver', e);
+            }
+            function nameMouseOut(e) {
+                console.log('nameMouseOut', e);
+            }
+
+            function addNumber(polygon) {
+
+                const id = polygon.properties.gid
+                const number = polygon.properties.number || ""
+                const firstCoordinate = turf.getCoords(polygon)[0][0]
+                const layerID = "number_" + id
+
+                map.getLayer(layerID) && map.removeLayer(layerID)
+                map.getSource(layerID) && map.removeSource(layerID)
+
+                map.off("click", layerID, nameClick)
+                map.off("mouseover", layerID, nameMouseOver)
+                map.off("mouseout", layerID, nameMouseOut)
+
+                map.addSource(layerID, {
                     'type': 'geojson',
                     'data': {
                         'type': 'FeatureCollection',
@@ -776,9 +928,9 @@
                     }
                 })
                 map.addLayer({
-                    'id': numberID,
+                    'id': layerID,
                     'type': 'symbol',
-                    'source': numberID,
+                    'source': layerID,
                     'layout': {
                         'text-field': ['get', 'name'],
                         'text-font': [
@@ -791,33 +943,20 @@
                         'text-ignore-placement': true,
                         'text-anchor': 'center',
                         'text-justify': 'center',
-                        'text-offset': [0, 0]
+                        'text-offset': [0, 0],
+                        "text-rotation-alignment": "map"
+                    },
+                    'paint': {
+                        "text-halo-width": 2,
+                        "text-halo-blur": 2,
+                        "text-halo-color": "#fff"
+
                     }
                 });
 
-
-
-                //draw sqaure
-                const radius = 0.01;
-                const options = { steps: 25, units: 'kilometers' };
-                const circle = turf.circle(center, radius, options);
-
-                const bbox = turf.bbox(circle)
-                const bboxPolygon = turf.bboxPolygon(bbox)
-                const rotationAngle = 0;   // in degrees
-                const rotatedPolygon = turf.transformRotate(bboxPolygon, rotationAngle);
-                const rotatedCoords = (turf.getCoords(rotatedPolygon))[0].slice(0, 4);
-
-                map.addSource(logoID, {
-                    'type': 'image',
-                    'url': 'img/logos/starbucks.png',
-                    'coordinates': rotatedCoords
-                })
-                map.addLayer({
-                    'id': logoID,
-                    'type': 'raster',
-                    'source': logoID,
-                });
+                map.on("click", layerID, nameClick)
+                map.on("mouseover", layerID, nameMouseOver)
+                map.on("mouseout", layerID, nameMouseOut)
 
             }
 
@@ -835,6 +974,9 @@
 
                 editMode = false //SET the ability to select it again 
                 draw.deleteAll()
+
+                generateLayers(geometry)
+
             }
             const debounceMove = _.debounce(updateFunc, 1)
             const debounceRotate = _.debounce(updateFunc, 2000) //more time for rotate
@@ -1126,26 +1268,11 @@
                     return;
                 }
                 console.log('place.geometry', place.geometry);
-                // if (place.geometry.viewport) {
-                //     map.fitBounds(place.geometry.viewport);
-                // } else {
-                //     map.setCenter(place.geometry.location);
-                //     map.setZoom(17);
-                // }
                 const { lat, lng } = place.geometry.location.toJSON()
                 map.flyTo({
                     center: { lat, lng },
                     zoom: 19
                 })
-
-                // if (userMarker) userMarker.remove();
-
-                // userMarker = new mapboxgl.Marker({ color: 'blue' })
-                //     .setLngLat({ lat, lng })
-                //     .addTo(map);
-
-                // userPosition.lat = lat
-                // userPosition.lng = lng
             });
         }
 
