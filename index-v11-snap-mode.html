@@ -405,12 +405,26 @@
         function onMove(e) {
             const coords = e.lngLat;
             canvas.style.cursor = 'grabbing';
-            console.log('e.lngLat', coords);
 
             mainData.currentLayer.polygon.geometry.coordinates = [coords.lng, coords.lat];
 
+            map.getSource(mainData.currentLayer.layerID)
+                .setData({
+                    "type": "FeatureCollection",
+                    "features": [
 
-            map.getSource(mainData.currentLayer.layerID).setData(turf.featureCollection(mainData.currentLayer.polygon));
+                        {
+                            "type": "Feature",
+                            'properties': {
+                                'name': "123123"
+                            },
+                            "geometry": {
+                                "coordinates": [coords.lng, coords.lat],
+                                "type": "Point"
+                            }
+                        }
+                    ]
+                });
         }
         function onUp(e) {
             canvas.style.cursor = '';
@@ -923,12 +937,29 @@
                 const firstCoordinate = turf.getCoords(polygon)[0][0]
                 const layerID = "number_" + id
 
-                map.getLayer(layerID) && map.removeLayer(layerID)
-                map.getSource(layerID) && map.removeSource(layerID)
+                if (map.getLayer(layerID)) {
 
-                map.off("click", layerID, nameClick)
-                map.off("mouseover", layerID, nameMouseOver)
-                map.off("mouseout", layerID, nameMouseOut)
+                    map.getSource(layerID).setData({
+                        'type': 'FeatureCollection',
+                        'features': [
+                            {
+                                'type': 'Feature',
+                                'geometry': {
+                                    'type': 'Point',
+                                    'coordinates': firstCoordinate
+                                },
+                                'properties': {
+                                    'name': number
+                                }
+                            }
+                        ]
+                    })
+                    return;
+                }
+
+                // map.off("click", layerID, nameClick)
+                // map.off("mouseover", layerID, nameMouseOver)
+                // map.off("mouseout", layerID, nameMouseOut)
 
                 map.addSource(layerID, {
                     'type': 'geojson',
@@ -975,12 +1006,6 @@
                     }
                 });
 
-                // map.on("click", layerID, nameClick)
-                // map.on("mouseover", layerID, nameMouseOver)
-                // map.on("mouseout", layerID, nameMouseOut)
-
-
-
                 // When the cursor enters a feature in
                 // the point layer, prepare for dragging.
                 map.on('mouseenter', layerID, () => {
@@ -997,19 +1022,14 @@
                     console.log('polygon', polygon);
                     mainData.currentLayer = {
                         polygon: {
-                            'type': 'FeatureCollection',
-                            'features': [
-                                {
-                                    'type': 'Feature',
-                                    'geometry': {
-                                        'type': 'Point',
-                                        'coordinates': firstCoordinate
-                                    },
-                                    'properties': {
-                                        'name': number
-                                    }
-                                }
-                            ]
+                            'type': 'Feature',
+                            'geometry': {
+                                'type': 'Point',
+                                'coordinates': firstCoordinate
+                            },
+                            'properties': {
+                                'name': number
+                            }
                         },
                         layerID
                     }
