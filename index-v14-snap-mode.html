@@ -795,9 +795,14 @@
                 popup.remove()
             })
 
-            function generatePropWindow(geometry) {
+            function generatePropWindow(geometryObject) {
 
-                console.log('geometry', geometry);
+                console.log('geometryObject', geometryObject);
+                let geometry = geometryObject
+                if (geometryObject.type === "FeatureCollection") {
+                    geometry = geometry.features[0]
+                }
+
                 const { gid: id } = geometry.properties
                 console.log('id', id);
 
