@@ -89,6 +89,7 @@
 
         .draw {
             display: flex;
+            flex-direction: column;
         }
 
         .draw>button {
@@ -223,7 +224,7 @@
         <input type="file" id="fileInput" accept="image/png, image/jpeg, image/gif , image/webp">
         <div id="imagePreview"></div>
 
-        <div class="draw">
+        <div class="draw" id="draw-tab">
             <button id="draw" class="buttons">Draw</button>
             <button id="rotate" class="buttons">Rotate</button>
             <button id="delete" class="buttons">Delete</button>
@@ -268,6 +269,7 @@
     <div id="map"></div>
 
     <script>
+        const drawTab = document.getElementById('draw-tab');
         const polygonPropsDiv = document.getElementById('polygon-props-container');
         const satelliteLayer = document.getElementById('satelliteLayer');
         const drawButton = document.getElementById("draw");
@@ -290,7 +292,6 @@
         let selectedGeometryId = {};
         const assignedIcons = [];
 
-        const infoModal = createModal()
 
         const drawLlayers = ['gl-draw-polygon-fill-inactive.cold', 'gl-draw-polygon-fill-active.cold', 'gl-draw-overlay-polygon-fill-inactive.cold', 'gl-draw-overlay-polygon-fill-active.cold', 'gl-draw-polygon-stroke-inactive.cold', 'gl-draw-polygon-stroke-active.cold', 'gl-draw-polygon-midpoint.cold', 'gl-draw-line-inactive.cold', 'gl-draw-line-active.cold', 'gl-draw-polygon-and-line-vertex-stroke-inactive.cold', 'gl-draw-polygon-and-line-vertex-inactive.cold', 'gl-draw-polygon-and-line-vertex-scale-icon.cold', 'gl-draw-point-point-stroke-inactive.cold', 'gl-draw-point-inactive.cold', 'gl-draw-point-stroke-active.cold', 'gl-draw-point-active.cold', 'gl-draw-polygon-fill-static.cold', 'gl-draw-polygon-stroke-static.cold', 'gl-draw-line-static.cold', 'gl-draw-point-static.cold', 'gl-draw-line-rotate-point.cold', 'gl-draw-polygon-rotate-point-stroke.cold', 'gl-draw-polygon-rotate-point.cold', 'gl-draw-polygon-rotate-point-icon.cold', 'gl-draw-polygon-fill-inactive.hot', 'gl-draw-polygon-fill-active.hot', 'gl-draw-overlay-polygon-fill-inactive.hot', 'gl-draw-overlay-polygon-fill-active.hot', 'gl-draw-polygon-stroke-inactive.hot', 'gl-draw-polygon-stroke-active.hot', 'gl-draw-polygon-midpoint.hot', 'gl-draw-line-inactive.hot', 'gl-draw-line-active.hot', 'gl-draw-polygon-and-line-vertex-stroke-inactive.hot', 'gl-draw-polygon-and-line-vertex-inactive.hot', 'gl-draw-polygon-and-line-vertex-scale-icon.hot', 'gl-draw-point-point-stroke-inactive.hot', 'gl-draw-point-inactive.hot', 'gl-draw-point-stroke-active.hot', 'gl-draw-point-active.hot', 'gl-draw-polygon-fill-static.hot', 'gl-draw-polygon-stroke-static.hot', 'gl-draw-line-static.hot', 'gl-draw-point-static.hot', 'gl-draw-line-rotate-point.hot', 'gl-draw-polygon-rotate-point-stroke.hot', 'gl-draw-polygon-rotate-point.hot', 'gl-draw-polygon-rotate-point-icon.hot']
 
@@ -322,67 +323,171 @@
         map.doubleClickZoom.disable();
 
         const items = []
+        const canvas = map.getCanvasContainer();
+        let movableLayerID = 0
+
+
+        const addText = document.createElement("button")
+        addText.innerText = "Add Text"
+        addText.className = "buttons"
+        addText.addEventListener("click", () => {
+
+            const id = new Date().getTime();
+            createTextLayer(new Date().getTime())
+            const item = {
+                type: "text",
+                id
+            }
+            allItems.push(item)
+        })
+        drawTab.appendChild(addText)
+
+
 
         const polyItems = () => {
-
             const items = []
-
-            const getItem = () => {
-
+            const getItem = (polyId) => {
+                return items.find(d => d.id === polyId)
             }
-
             const addItem = (poly) => {
                 items.push(poly)
             }
+            const updateProp = (id, prop, value) => {
+                const item = getItem(id)
+                if (item) {
+                    item[prop] = value
+                    updateMap()
+                }
+            }
+            const updateMap = () => {
+                items.forEach(d => {
+                    nameLayer(d)
+                    numberLayer(d)
+                    //set fill color
+                    map.setPaintProperty("geom_" + d.id, "fill-color", d.fillColor)
+                })
+            }
 
-            const updateItem = () => {
+            const numberLayer = (item) => {
 
+                const { id, number, numberAngle, numberPosition } = item
+                const layerID = "number_" + id
+
+                map.getLayer(layerID) && map.removeLayer(layerID)
+                map.getSource(layerID) && map.removeSource(layerID)
+
+                map.addSource(layerID, {
+                    'type': 'geojson',
+                    'data': {
+                        'type': 'FeatureCollection',
+                        'features': [
+                            {
+                                'type': 'Feature',
+                                'geometry': {
+                                    'type': 'Point',
+                                    'coordinates': numberPosition
+                                },
+                                'properties': {
+                                    'name': number
+                                }
+                            }
+                        ]
+                    }
+                })
+
+                map.addLayer({
+                    'id': layerID,
+                    'type': 'symbol',
+                    'source': layerID,
+                    'layout': {
+                        'text-field': ['get', 'name'],
+                        'text-font': [
+                            'Open Sans Semibold',
+                            'Arial Unicode MS Bold'
+                        ],
+                        'text-size': ['interpolate', ['linear'], ['zoom'], 0, 0, 14, 0, 16, 8, 19, 20,],
+                        'text-rotate': 0,
+                        'text-allow-overlap': true,
+                        'text-ignore-placement': true,
+                        'text-anchor': 'center',
+                        'text-justify': 'center',
+                        'text-offset': [0, 0],
+                        "text-rotation-alignment": "map"
+                    },
+                    'paint': {
+                        "text-halo-width": 2,
+                        "text-halo-blur": 2,
+                        "text-halo-color": "#fff"
+                    }
+                });
+            }
+
+            const nameLayer = (item) => {
+
+                const { id, name, nameAngle } = item
+                const [lng, lat] = item.namePosition
+                const layerID = "text_" + id
+
+                map.getLayer(layerID) && map.removeLayer(layerID)
+                map.getSource(layerID) && map.removeSource(layerID)
+
+                map.addSource(layerID, {
+                    'type': 'geojson',
+                    'data': {
+                        'type': 'FeatureCollection',
+                        'features': [
+                            {
+                                'type': 'Feature',
+                                'geometry': {
+                                    'type': 'Point',
+                                    'coordinates': [lng, lat]
+                                },
+                                'properties': {
+                                    'name': name
+                                }
+                            }
+                        ]
+                    }
+                })
+
+                map.addLayer({
+                    'id': layerID,
+                    'type': 'symbol',
+                    'source': layerID,
+                    'layout': {
+                        'text-field': ['get', 'name'],
+                        'text-font': [
+                            'Open Sans Semibold',
+                            'Arial Unicode MS Bold'
+                        ],
+                        'text-size': ['interpolate', ['linear'], ['zoom'], 0, 0, 14, 0, 16, 8, 19, 20,],
+                        'text-rotate': nameAngle,
+                        'text-allow-overlap': true,
+                        'text-ignore-placement': true,
+                        'text-anchor': 'center',
+                        'text-justify': 'center',
+                        'text-offset': [0, 0],
+                        "text-rotation-alignment": "map",
+                    },
+                    'paint': {
+                        "text-halo-width": 2,
+                        "text-halo-blur": 2,
+                        "text-halo-color": "#fff"
+                    }
+                });
             }
 
             const getAll = () => {
                 return items
             }
-
             return {
                 getItem,
                 addItem,
-                updateItem,
+                updateProp,
                 getAll
             }
         }
         const polys = polyItems();
-
-
-        const canvas = map.getCanvasContainer();
-        function onMove(e) {
-            const coords = e.lngLat;
-            canvas.style.cursor = 'grabbing';
-
-            mainData.currentLayer.polygon.geometry.coordinates = [coords.lng, coords.lat];
-
-            map.getSource(mainData.currentLayer.layerID)
-                .setData({
-                    "type": "FeatureCollection",
-                    "features": [
-
-                        {
-                            "type": "Feature",
-                            'properties': {
-                                'name': "123123"
-                            },
-                            "geometry": {
-                                "coordinates": [coords.lng, coords.lat],
-                                "type": "Point"
-                            }
-                        }
-                    ]
-                });
-        }
-        function onUp(e) {
-            canvas.style.cursor = '';
-            map.off('mousemove', onMove);
-            map.off('touchmove', onMove);
-        }
 
 
         // const draw = new MapboxDraw({
@@ -556,18 +661,6 @@
                 const number = polygon.properties.number || ""
                 const image = "https://nikolsky.com.ua/wp-content/uploads/2021/02/house.png" || ""
 
-                const saveButton = document.createElement("button")
-                saveButton.innerText = "Save"
-                saveButton.addEventListener("click", () => {
-                    console.log('save data');
-                    map.setPaintProperty("geom_" + id, 'fill-color', polygon.properties.fillColor)
-                    polygon.properties.fillColor = colorInput.value
-                    polygon.properties.name = nameInput.value
-                    polygon.properties.number = numberInput.value
-                    polygon.properties.image = image
-                    generateLayers(polygon)
-                })
-
                 const div = document.createElement("div")
                 const colorText = document.createElement("div")
                 colorText.innerText = "Set color"
@@ -576,25 +669,24 @@
                 colorInput.type = "color"
                 colorInput.value = color
                 colorInput.addEventListener("input", e => {
-                    const color = e.target.value
-                    polygon.properties.fillColor = color
-                    generateLayers(polygon)
+                    const value = e.target.value
+                    updateProp(id, "fillColor", value)
                 })
 
                 const nameInput = document.createElement("input")
                 nameInput.placeholder = "set name"
                 nameInput.value = name
                 nameInput.addEventListener("input", e => {
-                    polygon.properties.name = e.target.value
-                    generateLayers(polygon)
+                    const value = e.target.value
+                    updateProp(id, "name", value)
                 })
 
                 const numberInput = document.createElement("input")
                 numberInput.placeholder = "set number"
                 numberInput.value = number
                 numberInput.addEventListener("input", e => {
-                    polygon.properties.number = e.target.value
-                    generateLayers(polygon)
+                    const value = e.target.value
+                    updateProp(id, "number", value)
                 })
 
 
@@ -612,9 +704,7 @@
                 imageSizeSlider.value = 5
                 imageSizeSlider.addEventListener("input", e => {
                     const value = e.target.value
-                    polygon.properties.imageSize = value
-                    console.log('value', value);
-                    generateLayers(polygon)
+                    updateProp(id, "imageSize", value)
                 })
 
                 const imageAngleSlider = document.createElement("input")
@@ -624,36 +714,24 @@
                 imageAngleSlider.value = 5
                 imageAngleSlider.addEventListener("input", e => {
                     const value = e.target.value
-                    polygon.properties.imageAngle = value
-                    console.log('value', value);
-                    generateLayers(polygon)
+                    updateProp(id, "imageAngle", value)
                 })
-
 
                 div.appendChild(colorText)
                 div.appendChild(colorInput)
-                div.appendChild(nameInput)
                 div.appendChild(numberInput)
+                div.appendChild(nameInput)
                 div.appendChild(fileInput)
                 div.appendChild(imageSizeSlider)
                 div.appendChild(imageAngleSlider)
 
-                div.appendChild(saveButton)
+                // div.appendChild(saveButton)
                 polygonPropsDiv.replaceChildren(div)
             }
 
-            function generateLayers(geometry) {
-                console.log('geometry', geometry);
-
-                let polygon = geometry
-                if (geometry.type && geometry.type === "FeatureCollection") {
-                    polygon = geometry.features[0]
-                }
-
-                addLogo(polygon)
-                addName(polygon)
-                addNumber(polygon)
-
+            function updateProp(id, prop, value) {
+                polys.updateProp(id, prop, value)
+                console.log('poly', polys.getItem(id));
             }
 
             function addLogo(polygon) {
@@ -925,7 +1003,7 @@
                 editMode = false //SET the ability to select it again 
                 draw.deleteAll()
 
-                generateLayers(geometry)
+                updateProp(geometry)
 
             }
             const debounceMove = _.debounce(updateFunc, 1)
@@ -968,16 +1046,19 @@
                         ...geometryObj
                     })
 
-
+                    const polygon = draw.getSelected().features[0]
+                    const center = turf.centerOfMass(polygon)
+                    const [lng, lat] = turf.getCoords(center)
+                    const numberPosition = draw.getSelected().features[0].geometry.coordinates[0][0]
                     polys.addItem({
                         id: geometryObj.layerId,
-                        geom: draw.getSelected().features[0].geometry.coordinates[0],
+                        geom: polygon,
                         name: "",
-                        namePosition: [],
+                        namePosition: [lng, lat],
                         nameAngle: 0,
 
                         number: "",
-                        numberPosition: [],
+                        numberPosition: numberPosition,
                         numberAngle: 0,
 
                         image: "",
@@ -992,30 +1073,6 @@
 
         })
 
-        function addPlaceholder(text) {
-            let marker;
-            const div = document.createElement('div');
-            div.className = "wrapper"
-
-            const span = document.createElement('span');
-            span.className = "close-marker"
-            span.addEventListener("click", () => {
-                marker.remove()
-            })
-
-            const el = document.createElement('div');
-            el.className = 'marker';
-            el.innerHTML = text
-
-            div.appendChild(el)
-            div.appendChild(span)
-
-            // make a marker for each feature and add it to the map
-            marker = new mapboxgl.Marker(div, { draggable: true, anchor: "left", offset: [30, 0] })
-                .setLngLat(map.getCenter())
-                .addTo(map);
-        }
-
         function updateArea() {
             const geometry = draw.getSelected()
             const area = turf.area(geometry);
@@ -1029,39 +1086,6 @@
                 </div>
             `
             polygonInfo.innerHTML = `${data}`
-        }
-
-        function placeLotOnMap(data) {
-            console.log('data', data);
-
-            map.setZoom(19)//projection zoom
-            const proj = data.geometry
-            const geometryTypes = proj.length > 1
-                ?
-                {
-                    polyCoordinates: proj.map(d => {
-                        return [d.map(p => map.unproject(p).toArray())]
-                    }),
-                    type: "multipolygon"
-                }
-                :
-                {
-                    polyCoordinates: proj[0].map(d => {
-                        return map.unproject(d).toArray()
-                    }),
-                    type: "polygon"
-                }
-
-            const geometryObj = generateLayer({
-                ...geometryTypes,
-                fillColor: data.fillColor,
-                opacity: data.opacity,
-                isImageLayer: data.hasOwnProperty("backgroundImage") ? data.backgroundImage : false
-            })
-
-            mainData.layers.set(geometryObj.layerId, {
-                ...geometryObj
-            })
         }
 
         function generateLayer({ polyCoordinates, type = "polygon", fillColor = "#0080ff", opacity = 0.5, isImageLayer = false }) {
@@ -1151,82 +1175,6 @@
             return (new Date()).getTime()
         }
 
-        function getGeometry() {
-            map.setZoom(19)
-            map.once("idle", () => {
-                const g = draw.getSelected();
-                const coords = g.features[0].geometry.coordinates[0]
-                const projections = coords.map(d => {
-                    console.log('d', d);
-                    return map.project(d)
-                })
-                console.log('pro', JSON.stringify(projections));
-            })
-        }
-
-        // function updateArea(e) {
-        //     const data = draw.getAll();
-        //     console.log('data', ...data.features[0].geometry.coordinates);
-        //     const square = data.features[0].geometry.coordinates[0]
-        //     square.pop()
-        //     map.getSource("parking").setCoordinates(square)
-        // }
-
-        function createLotButton(data, clickEvent) {
-
-            const div = document.createElement('div')
-            div.addEventListener("click", () => typeof clickEvent === 'function' && clickEvent())
-            div.className = "lot-button"
-
-            const text = document.createElement('div')
-            text.innerText = data.name + ""
-            text.style.flex = "1 0 0 "
-
-            const imagesDiv = document.createElement('div')
-            imagesDiv.style.marginRight = "5px"
-            const images = data.icons && data.icons.map(d => {
-                const img = document.createElement('img')
-                img.src = d
-                img.style.width = "20px"
-                img.style.height = "20px"
-                img.style.objectFit = "cover"
-                imagesDiv.appendChild(img)
-            })
-
-            div.appendChild(imagesDiv)
-            div.appendChild(text)
-
-            if (data.propertyImage) {
-                const propImagesDiv = document.createElement('div')
-                propImagesDiv.style.marginRight = "5px"
-                propImagesDiv.style.display = "flex"
-                const img = document.createElement('img')
-                img.src = 'img/icons8-info-16.png'
-                img.style.width = "20px"
-                img.style.height = "20px"
-                img.style.objectFit = "cover"
-                propImagesDiv.appendChild(img)
-                propImagesDiv.addEventListener("click", e => {
-
-                    const div = document.createElement("div")
-                    div.setAttribute("style", "display: flex; align-items: center; justify-content: center;")
-                    div.innerHTML = `<img src="${data.propertyImage}">`;
-                    infoModal.showInfo({
-                        header: data.imageHeader || `Image`,
-                        data: div,
-                    })
-
-                    e.stopPropagation();
-                    return
-                })
-                div.appendChild(propImagesDiv)
-            }
-
-
-            return div
-        }
-
-
         function initMap() {
             const input = document.getElementById("search");
             const autocomplete = new google.maps.places.Autocomplete(input);
@@ -1245,256 +1193,7 @@
             });
         }
 
-
-
-        function buildCategoryFilters(data) {
-
-            const sectorsArr = data.map(store => store.sector.split(",").map(i => i.trim())).flat().filter(i => i !== "")
-            const sector = [...new Set(sectorsArr)]
-            const checkboxes = sector.map(name => {
-
-                const checkbox = buildDivBox(name, false, sectorName => {
-
-                    var index = selectedSectors.indexOf(sectorName);
-                    if (index !== -1) {
-                        selectedSectors.splice(index, 1);
-                    } else {
-                        selectedSectors.push(sectorName)
-                    }
-
-                    const shopNames = shopData.filter(shop => {
-                        return selectedSectors.length > 0 && selectedSectors.every(elem => shop.sectors.includes(elem))
-                    })
-
-                    const pins = shopNames
-                        .map(pin => {
-                            const { property_latitude, property_longitude } = pin
-                            return {
-                                "type": "Feature", "properties": { ...pin, },
-                                "geometry": {
-                                    "type": "Point", "coordinates": [+property_longitude, +property_latitude]
-                                }
-                            }
-                        })
-                    const featureCollection = turf.featureCollection(pins)
-                    map.getSource("store").setData(featureCollection)
-                })
-                sectorsDiv.appendChild(checkbox)
-
-                return checkbox
-            })
-            return checkboxes
-        }
-
-        function buildStoreFilters(data) {
-
-            const names = [...new Set(data.map(store => store.company_name).sort())]
-            console.log('names', names);
-            names.forEach(name => {
-                const checkbox = buildCheckBox(name, selectedShops.includes(name), e => {
-                    console.log('name', e);
-                    const checked = e.target.checked
-                    const value = e.target.id
-                    if (checked) {
-                        selectedShops.push(value)
-                    } else {
-                        var index = selectedShops.indexOf(value);
-                        if (index !== -1) {
-                            selectedShops.splice(index, 1);
-                        }
-                    }
-                    filterByShopNameS(selectedShops)
-                })
-                shopList.appendChild(checkbox)
-            })
-        }
-
-        function buildCheckBox(name, checked, eventFunction) {
-            const div = document.createElement("div")
-            const checkbox = document.createElement('input');
-            checkbox.type = "checkbox";
-            checkbox.name = "name";
-            checkbox.value = name;
-            checkbox.id = name;
-            checkbox.addEventListener("input", eventFunction)
-            checkbox.checked = checked
-            var label = document.createElement('label')
-            label.htmlFor = name;
-            label.appendChild(document.createTextNode(name));
-            div.appendChild(checkbox);
-            div.appendChild(label);
-            return div
-        }
-
-        function buildDivBox(name, checked, eventFunction) {
-
-            let active = false;
-            const div = document.createElement("div")
-            div.className = 'div-box'
-            div.id = name;
-            div.addEventListener("click", () => {
-                active = !active
-                console.log('active', active);
-
-                if (active) {
-                    div.classList.add("div-box-active")
-                } else {
-                    div.classList.remove("div-box-active")
-                }
-
-                eventFunction(name)
-            })
-            const iconName = name.toLowerCase().trim()
-            console.log('iconsName', iconName);
-            const img = document.createElement("img")
-            img.src = `icons/${iconName}.svg`
-            img.style.width = "30px"
-            img.style.height = "30px"
-            const label = document.createElement("div")
-            label.innerText = name
-            div.appendChild(img)
-            div.appendChild(label);
-            return div
-        }
-
-
-        function filterByShopName() {
-            const name = shopName.value;
-            map.setFilter('store', ['==', 'company_name', name]);
-            map.setFilter('storeLogo', ['==', 'company_name', name]);
-        }
-
-        function createModal() {
-            const modalWindow = document.getElementById("modal-info")
-            const modalWindowBody = document.getElementById("modal-window-body")
-            const closeModal = document.getElementById("close-modal-info")
-            const modalWindowHeader = document.getElementById("modal-info-header")
-
-            closeModal.addEventListener("click", () => {
-                closeWindow()
-            })
-
-            function closeWindow() {
-                modalWindow.style.display = "none"
-                modalWindowBody.replaceChildren()
-                modalWindowHeader.innerText = ""
-            }
-
-            function setData({ data, header = "" }) {
-                modalWindowBody.appendChild(data)
-                modalWindowHeader.innerText = header
-            }
-            function showInfo({ data, header }) {
-                setData({ data, header });
-                modalWindow.style.display = "flex"
-            }
-
-            return {
-                showInfo,
-                closeWindow
-            }
-        }
-
-        function filterByShopNameS(shopNameArray) {
-
-            console.log('shopNameArray', shopNameArray);
-            const pins = shopData
-                .filter(pin => shopNameArray.includes(pin.company_name))
-                .map(pin => {
-                    const { property_latitude, property_longitude } = pin
-                    return {
-                        "type": "Feature", "properties": { ...pin, },
-                        "geometry": {
-                            "type": "Point", "coordinates": [+property_longitude, +property_latitude]
-                        }
-                    }
-                })
-            const featureCollection = turf.featureCollection(pins)
-            map.getSource("store").setData(featureCollection)
-        }
-
-
-
-        var acc = document.getElementsByClassName("accordion");
-        var i;
-
-        for (i = 0; i < acc.length; i++) {
-            acc[i].addEventListener("click", function () {
-                this.classList.toggle("active");
-                var panel = this.nextElementSibling;
-                if (panel.style.maxHeight) {
-                    panel.style.maxHeight = null;
-                } else {
-                    panel.style.maxHeight = panel.scrollHeight + "px";
-                }
-            });
-        }
-
-        /**
-         * @param {string} url - The source image
-         * @param {number} aspectRatio - The aspect ratio
-         * @return {Promise<HTMLCanvasElement>} A Promise that resolves with the resulting image as a canvas element
-         */
-        function crop(url, aspectRatio, width, height) {
-            // we return a Promise that gets resolved with our canvas element
-            return new Promise((resolve) => {
-                // this image will hold our source image data
-                const inputImage = new Image();
-
-                // we want to wait for our image to load
-                inputImage.onload = () => {
-                    // let's store the width and height of our image
-                    const inputWidth = inputImage.naturalWidth;
-                    const inputHeight = inputImage.naturalHeight;
-
-                    // get the aspect ratio of the input image
-                    const inputImageAspectRatio = inputWidth / inputHeight;
-
-                    // if it's bigger than our target aspect ratio
-                    let outputWidth = inputWidth;
-                    let outputHeight = inputHeight;
-                    if (inputImageAspectRatio > aspectRatio) {
-                        outputWidth = inputHeight * aspectRatio;
-                    } else if (inputImageAspectRatio < aspectRatio) {
-                        outputHeight = inputWidth / aspectRatio;
-                    }
-
-                    // calculate the position to draw the image at
-                    const outputX = (outputWidth - inputWidth) * 0.5;
-                    const outputY = (outputHeight - inputHeight) * 0.5;
-
-                    // create a canvas that will present the output image
-                    const outputImage = document.createElement('canvas');
-
-                    // set it to the same size as the image
-                    outputImage.width = outputWidth;
-                    outputImage.height = outputHeight;
-
-                    // draw our image at position 0, 0 on the canvas
-                    const ctx = outputImage.getContext('2d');
-                    ctx.drawImage(inputImage, outputX, outputY);
-
-
-                    //resize image
-                    const resizedImage = document.createElement('canvas');
-                    resizedImage.width = width;
-                    resizedImage.height = height;
-
-                    const resizedCtx = resizedImage.getContext('2d');
-                    resizedCtx.drawImage(outputImage, 0, 0, width, height);
-
-                    resolve(resizedImage);
-
-                };
-
-                // start loading our image
-                inputImage.src = url;
-            });
-        }
-
-
     </script>
-
     <script
         src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBrK7zAmbEFKIyv_g6XOE3WpSq34nOYuEI&callback=initMap&libraries=places&v=weekly"
         defer></script>
