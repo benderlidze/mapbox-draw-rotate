@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Filters</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.11.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.11.0/mapbox-gl.js"></script>
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.js"></script>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.css"
+        type="text/css">
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+
+    <script src="js/rotate_mod.js"></script>
+
+    <link href="css/toggle.css" rel="stylesheet">
+    <link href="css/main.css" rel="stylesheet">
+
+    <script src="https://unpkg.com/mapbox-gl-draw-snap-mode"></script>
+
+    <style>
+        .sectors {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr !important;
+            /* grid-template-rows: 1fr 1fr 1fr; */
+            /* grid-gap: 3px; */
+        }
+
+        .sectors :nth-child(n + 4) {
+            grid-column: span 3;
+        }
+
+        .mapboxgl-ctrl-top-right {
+            display: none;
+        }
+
+        .sectors-override {
+            grid-template-columns: 1fr;
+        }
+
+        .lot-button {
+            display: flex;
+            align-content: center;
+            align-items: center;
+            flex-direction: row;
+            justify-content: flex-start;
+        }
+
+        #lots {
+            top: 80px;
+            left: 20px;
+            position: absolute;
+            z-index: 10;
+            background-color: white;
+            border-radius: 10px;
+            display: flex;
+            padding: 10px;
+            flex-direction: column;
+        }
+
+        .lot-button {
+            cursor: pointer;
+            padding: 5px;
+            margin: 2px;
+            border-radius: 5px;
+            font-size: 12px;
+            border: 1px solid gray;
+        }
+
+        .lot-button:hover {
+            background-color: rgb(228, 228, 228);
+        }
+
+        #polygon-info-container {
+            top: 20px;
+            right: 20px;
+            position: absolute;
+            z-index: 10;
+            background-color: white;
+            border-radius: 10px;
+            display: flex;
+            padding: 10px;
+            border: 1px solid #004cff;
+            flex-direction: column;
+            font: 0.8em sans-serif;
+        }
+
+        .draw {
+            display: flex;
+        }
+
+        .draw>button {
+            margin-right: 3px;
+        }
+
+        .help-button {
+            background-color: #f29830;
+            border: none;
+            margin: 0px 3px;
+            color: white;
+        }
+
+        .modal-content {
+            width: 60%;
+        }
+
+        .modal {
+            padding-top: 0;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .marker {
+
+            min-width: 100px;
+            height: 30px;
+            background: #ccc;
+
+
+            border-radius: 5px;
+            padding: 5px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .marker:before {
+            content: "";
+            position: absolute;
+            right: 100%;
+            top: 16px;
+            width: 0;
+            height: 0;
+            border-top: 5px solid transparent;
+            border-right: 36px solid #ccc;
+            border-bottom: 5px solid transparent;
+        }
+
+
+        .wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .close-marker:before {
+            content: '✕';
+        }
+
+        .close-marker {
+            position: absolute;
+            top: 0;
+            right: 0;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+
+
+        .accordion {
+            background-color: #eee;
+            color: #444;
+            cursor: pointer;
+            padding: 7px;
+            /* width: 100%; */
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 15px;
+            transition: 0.4s;
+        }
+
+        .active,
+        .accordion:hover {
+            background-color: #ccc;
+        }
+
+        .accordion:after {
+            content: '\002B';
+            color: #777;
+            font-weight: bold;
+            float: right;
+            margin-left: 5px;
+        }
+
+        .active:after {
+            content: "\2212";
+        }
+
+        .accordion-panel {
+
+            background-color: white;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="modal-info" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" id="close-modal-info">&times;</span>
+                <h2 id="modal-info-header"></h2>
+            </div>
+            <div class="modal-body" id="modal-window-body">
+            </div>
+        </div>
+    </div>
+
+    <div id="filters">
+        <span class="small-text">Search town or postcode</span>
+        <div id="address">
+            <input type="text" id="search">
+        </div>
+        <hr>
+        <div class="item-header">
+            Tools
+        </div>
+
+        <input type="file" id="fileInput" accept="image/png, image/jpeg, image/gif , image/webp">
+        <div id="imagePreview"></div>
+
+        <div class="draw">
+            <button id="draw" class="buttons">Draw</button>
+            <button id="rotate" class="buttons">Rotate</button>
+            <button id="delete" class="buttons">Delete</button>
+            <button id="addInfo" class="buttons">Add info</button>
+        </div>
+        <hr>
+        <div class="item-header" style="display: none;">
+            Objects
+        </div>
+        <div id="sectors" class="">
+
+        </div>
+        <div>
+            <div id="shop-list"></div>
+        </div>
+        <hr>
+        <div class="switch-item">
+            <div class="item-header">Satellite view</div>
+            <label class="switch">
+                <input type="checkbox" id="satelliteLayer">
+                <span class="slider round"></span>
+            </label>
+        </div>
+        <hr>
+
+        <div class="item-header">
+            <span class="" id="resetSectors">Reset</span>
+            <span id="help" class="buttons help-button">Tutorial</span>
+            <span id="screenshot" class="buttons help-button">Screenshot</span>
+        </div>
+
+
+    </div>
+
+    <div id="polygon-info-container">
+        <div id="polygon-info"></div>
+        *Double click to measure an object
+    </div>
+
+    <div id="polygon-props-container"></div>
+
+    <div id="map"></div>
+
+    <script>
+        const polygonPropsDiv = document.getElementById('polygon-props-container');
+        const satelliteLayer = document.getElementById('satelliteLayer');
+        const drawButton = document.getElementById("draw");
+        const deleteButton = document.getElementById("delete");
+        const rotateButton = document.getElementById("rotate");
+        const polygonInfo = document.getElementById("polygon-info");
+        const sectorsDiv = document.getElementById("sectors");
+        const resetButton = document.getElementById("resetSectors");
+        const helpButton = document.getElementById("help");
+        const addInfoButton = document.getElementById("addInfo");
+        const screenshot = document.getElementById("screenshot");
+        const fileInput = document.getElementById('fileInput');
+        const imagePreview = document.getElementById('imagePreview');
+
+        const mainData = {
+            layers: new Map(),
+            currentLayer: null,
+        }
+
+        let selectedGeometryId = {};
+        const assignedIcons = [];
+
+
+        const drawLlayers = ['gl-draw-polygon-fill-inactive.cold', 'gl-draw-polygon-fill-active.cold', 'gl-draw-overlay-polygon-fill-inactive.cold', 'gl-draw-overlay-polygon-fill-active.cold', 'gl-draw-polygon-stroke-inactive.cold', 'gl-draw-polygon-stroke-active.cold', 'gl-draw-polygon-midpoint.cold', 'gl-draw-line-inactive.cold', 'gl-draw-line-active.cold', 'gl-draw-polygon-and-line-vertex-stroke-inactive.cold', 'gl-draw-polygon-and-line-vertex-inactive.cold', 'gl-draw-polygon-and-line-vertex-scale-icon.cold', 'gl-draw-point-point-stroke-inactive.cold', 'gl-draw-point-inactive.cold', 'gl-draw-point-stroke-active.cold', 'gl-draw-point-active.cold', 'gl-draw-polygon-fill-static.cold', 'gl-draw-polygon-stroke-static.cold', 'gl-draw-line-static.cold', 'gl-draw-point-static.cold', 'gl-draw-line-rotate-point.cold', 'gl-draw-polygon-rotate-point-stroke.cold', 'gl-draw-polygon-rotate-point.cold', 'gl-draw-polygon-rotate-point-icon.cold', 'gl-draw-polygon-fill-inactive.hot', 'gl-draw-polygon-fill-active.hot', 'gl-draw-overlay-polygon-fill-inactive.hot', 'gl-draw-overlay-polygon-fill-active.hot', 'gl-draw-polygon-stroke-inactive.hot', 'gl-draw-polygon-stroke-active.hot', 'gl-draw-polygon-midpoint.hot', 'gl-draw-line-inactive.hot', 'gl-draw-line-active.hot', 'gl-draw-polygon-and-line-vertex-stroke-inactive.hot', 'gl-draw-polygon-and-line-vertex-inactive.hot', 'gl-draw-polygon-and-line-vertex-scale-icon.hot', 'gl-draw-point-point-stroke-inactive.hot', 'gl-draw-point-inactive.hot', 'gl-draw-point-stroke-active.hot', 'gl-draw-point-active.hot', 'gl-draw-polygon-fill-static.hot', 'gl-draw-polygon-stroke-static.hot', 'gl-draw-line-static.hot', 'gl-draw-point-static.hot', 'gl-draw-line-rotate-point.hot', 'gl-draw-polygon-rotate-point-stroke.hot', 'gl-draw-polygon-rotate-point.hot', 'gl-draw-polygon-rotate-point-icon.hot']
+
+        const lots = []
+
+        let prevCategoryName = "";
+        const cats = lots.reduce((r, a) => {
+            r[a.categoryName] = [...r[a.categoryName] || [], a];
+            return r;
+        }, {})
+
+        const {
+            SnapPolygonMode,
+            SnapPointMode,
+            SnapLineMode,
+            SnapModeDrawStyles,
+            SnapDirectSelect,
+        } = mapboxGlDrawSnapMode;
+
+        mapboxgl.accessToken = 'pk.eyJ1Ijoic2VyZ2JlciIsImEiOiJja3dwOWgzeGQwYWdyMm9xb2pkMDFvYmNuIn0.H9AJ_NLmDNYMed6dvu_Q0A';
+        const map = new mapboxgl.Map({
+            container: 'map', // container ID
+            // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
+            style: 'mapbox://styles/mapbox/light-v9', // style URL
+            center: { lng: -2.134943230363888, lat: 52.98713803343554 },
+            zoom: 18.332148527852908, // starting zoom
+            preserveDrawingBuffer: true,
+        });
+        map.doubleClickZoom.disable();
+
+        const items = []
+        const canvas = map.getCanvasContainer();
+        let movableLayerID = 0
+
+        function onMove(e) {
+            const coords = e.lngLat;
+            canvas.style.cursor = 'grabbing';
+            polys.updateProp(movableLayerID, "numberPosition", [coords.lng, coords.lat])
+        }
+        function onUp(e) {
+            const coords = e.lngLat;
+            canvas.style.cursor = '';
+            map.off('mousemove', onMove);
+            map.off('touchmove', onMove);
+        }
+
+        const polyItems = () => {
+            const items = []
+
+            const getItem = (polyId) => {
+                return items.find(d => d.id === polyId)
+            }
+
+            const addItem = (poly) => {
+                items.push(poly)
+            }
+
+            const updateProp = (layerId, prop, value) => {
+                const item = getItem(layerId)
+                if (item) {
+                    item[prop] = value
+                    updateLayer(layerId)
+                }
+            }
+
+            const updateLayer = (layerId) => {
+                items
+                    .filter(d => d.id === layerId)
+                    .forEach(d => {
+                        numberLayer(d)
+                        nameLayer(d)
+                        logoLayer(d)
+                        //update polygon fill color
+                        map.setPaintProperty("geom_" + d.id, "fill-color", d.fillColor)
+                    })
+            }
+
+            // const updateAllMap = () => {
+            //     items.forEach(d => {
+            //         numberLayer(d)
+            //         nameLayer(d)
+            //         logoLayer(d)
+            //         //set fill color
+            //         map.setPaintProperty("geom_" + d.id, "fill-color", d.fillColor)
+            //     })
+            // }
+
+            const logoLayer = (item) => {
+
+                const { id, number, numberAngle, numberPosition, geom, imageSize, imageAngle } = item
+                const layerID = "logo_" + id
+                const center = turf.centerOfMass(geom)
+                //draw sqaure
+                const radius = 0.001 * imageSize || 0.001;
+                const options = { steps: 25, units: 'kilometers' };
+                const circle = turf.circle(center, radius, options);
+
+                const bbox = turf.bbox(circle)
+                const bboxPolygon = turf.bboxPolygon(bbox)
+                const rotationAngle = imageAngle || 180;   // in degrees
+                const rotatedPolygon = turf.transformRotate(bboxPolygon, +rotationAngle);
+                const rotatedCoords = (turf.getCoords(rotatedPolygon))[0].slice(0, 4);
+
+                map.getLayer(layerID) && map.removeLayer(layerID)
+                map.getSource(layerID) && map.removeSource(layerID)
+
+                map.addSource(layerID, {
+                    'type': 'image',
+                    'url': 'img/logos/starbucks.png',
+                    'coordinates': rotatedCoords
+                })
+                map.addLayer({
+                    'id': layerID,
+                    'type': 'raster',
+                    'source': layerID,
+                },
+                    "number_" + id,
+                    "text_" + id
+                );
+
+            }
+
+            const numberLayer = (item) => {
+
+                const { id, number, numberAngle, numberPosition } = item
+                const layerID = "number_" + id
+
+                const geo = {
+                    'type': 'FeatureCollection',
+                    'features': [
+                        {
+                            'type': 'Feature',
+                            'geometry': {
+                                'type': 'Point',
+                                'coordinates': numberPosition
+                            },
+                            'properties': {
+                                'name': number,
+                                'numberAngle': numberAngle
+                            }
+                        }
+                    ]
+                }
+
+                if (!map.getSource(layerID)) {
+                    map.addSource(layerID, {
+                        'type': 'geojson',
+                        'data': geo
+                    })
+                } else {
+                    map.getSource(layerID).setData(geo)
+                }
+
+                if (!map.getLayer(layerID)) {
+                    map.addLayer({
+                        'id': layerID,
+                        'type': 'symbol',
+                        'source': layerID,
+                        'layout': {
+                            'text-field': ['get', 'name'],
+                            'text-font': [
+                                'Open Sans Semibold',
+                                'Arial Unicode MS Bold'
+                            ],
+                            'text-size': ['interpolate', ['linear'], ['zoom'], 0, 0, 14, 0, 16, 8, 19, 20,],
+                            'text-rotate': ['get', 'numberAngle'],
+                            'text-allow-overlap': true,
+                            'text-ignore-placement': true,
+                            'text-anchor': 'center',
+                            'text-justify': 'center',
+                            'text-offset': [0, 0],
+                            "text-rotation-alignment": "map"
+                        },
+                        'paint': {
+                            "text-halo-width": 2,
+                            "text-halo-blur": 2,
+                            "text-halo-color": "#fff"
+                        }
+                    });
+                    console.log('adding events',);
+                    map.on('mouseenter', layerID, () => {
+                        canvas.style.cursor = 'move';
+                    });
+
+                    map.on('mouseleave', layerID, () => {
+                        canvas.style.cursor = '';
+                    });
+
+                    map.on('mousedown', layerID, (e) => {
+                        // Prevent the default map drag behavior.
+                        movableLayerID = id
+                        e.preventDefault();
+                        canvas.style.cursor = 'grab';
+                        console.log('Mouse event');
+                        map.on('mousemove', onMove);
+                        map.once('mouseup', onUp);
+                    });
+
+                    map.on('touchstart', layerID, (e) => {
+                        if (e.points.length !== 1) return;
+                        // Prevent the default map drag behavior.
+                        e.preventDefault();
+                        map.on('touchmove', onMove);
+                        map.once('touchend', onUp);
+                    });
+                }
+            }
+
+            const nameLayer = (item) => {
+
+                const { id, name, nameAngle } = item
+                const [lng, lat] = item.namePosition
+                const layerID = "text_" + id
+
+                if (!map.getSource(layerID)) {
+                    map.addSource(layerID, {
+                        'type': 'geojson',
+                        'data': {
+                            'type': 'FeatureCollection',
+                            'features': [
+                                {
+                                    'type': 'Feature',
+                                    'geometry': {
+                                        'type': 'Point',
+                                        'coordinates': [lng, lat]
+                                    },
+                                    'properties': {
+                                        'name': name,
+                                        'nameAngle': nameAngle
+                                    }
+                                }
+                            ]
+                        }
+                    })
+                } else {
+                    map.getSource(layerID).setData({
+                        'type': 'FeatureCollection',
+                        'features': [
+                            {
+                                'type': 'Feature',
+                                'geometry': {
+                                    'type': 'Point',
+                                    'coordinates': [lng, lat]
+                                },
+                                'properties': {
+                                    'name': name,
+                                    'nameAngle': nameAngle
+                                }
+                            }
+                        ]
+                    })
+                }
+
+                if (!map.getLayer(layerID)) {
+                    map.addLayer({
+                        'id': layerID,
+                        'type': 'symbol',
+                        'source': layerID,
+                        'layout': {
+                            'text-field': ['get', 'name'],
+                            'text-font': [
+                                'Open Sans Semibold',
+                                'Arial Unicode MS Bold'
+                            ],
+                            'text-size': ['interpolate', ['linear'], ['zoom'], 0, 0, 14, 0, 16, 8, 19, 20,],
+                            'text-rotate': ['get', 'nameAngle'],
+                            'text-allow-overlap': true,
+                            'text-ignore-placement': true,
+                            'text-anchor': 'center',
+                            'text-justify': 'center',
+                            'text-offset': [0, 0],
+                            "text-rotation-alignment": "map",
+                        },
+                        'paint': {
+                            "text-halo-width": 2,
+                            "text-halo-blur": 2,
+                            "text-halo-color": "#fff"
+                        }
+                    });
+
+                    function onMoveName(e) {
+                        const coords = e.lngLat;
+                        canvas.style.cursor = 'grabbing';
+                        polys.updateProp(movableLayerID, "namePosition", [coords.lng, coords.lat])
+                    }
+                    function onUpName(e) {
+                        const coords = e.lngLat;
+                        canvas.style.cursor = '';
+                        map.off('mousemove', onMoveName);
+                        map.off('touchmove', onMoveName);
+                    }
+
+                    map.on('mouseenter', layerID, () => {
+                        canvas.style.cursor = 'move';
+                    });
+
+                    map.on('mouseleave', layerID, () => {
+                        canvas.style.cursor = '';
+                    });
+
+                    map.on('mousedown', layerID, (e) => {
+                        // Prevent the default map drag behavior.
+                        movableLayerID = id
+                        e.preventDefault();
+                        canvas.style.cursor = 'grab';
+                        console.log('Mouse event');
+                        map.on('mousemove', onMoveName);
+                        map.once('mouseup', onUpName);
+                    });
+
+                    map.on('touchstart', layerID, (e) => {
+                        if (e.points.length !== 1) return;
+                        // Prevent the default map drag behavior.
+                        e.preventDefault();
+                        map.on('touchmove', onMoveName);
+                        map.once('touchend', onUpName);
+                    });
+                }
+            }
+
+            const getAll = () => {
+                return items
+            }
+            return {
+                getItem,
+                addItem,
+                updateProp,
+                getAll
+            }
+        }
+        const polys = polyItems();
+
+
+        // const draw = new MapboxDraw({
+        //     userProperties: true,
+        //     //  displayControlsDefault: false,
+        //     styles: ScaleRotateMode.SRStyle,
+        //     modes: Object.assign(MapboxDraw.modes, {
+        //         scaleRotateMode: ScaleRotateMode.SRMode,
+        //     }),
+        // });
+
+        const draw = new MapboxDraw({
+            modes: {
+                ...MapboxDraw.modes,
+                draw_point: SnapPointMode,
+                draw_polygon: SnapPolygonMode,
+                draw_line_string: SnapLineMode,
+                direct_select: SnapDirectSelect,
+            },
+            styles: SnapModeDrawStyles,
+            userProperties: true,
+            snap: true,
+            // overlap: false,
+            snapOptions: {
+                snapPx: 15,
+                snapToMidPoints: true,
+                snapVertexPriorityDistance: 0.0025
+            },
+            guides: false,
+        });
+
+
+        map.addControl(draw);
+
+        const ScaleRotateModeProps = {
+            canScale: false,
+            canRotate: true, // only rotation enabled
+            canTrash: false, // disable feature delete
+            rotatePivot: ScaleRotateMode.SRCenter.Center, // rotate around center
+            scaleCenter: ScaleRotateMode.SRCenter.Opposite, // scale around opposite vertex
+            singleRotationPoint: true, // only one rotation point
+            rotationPointRadius: 1.2, // offset rotation point
+            canSelectFeatures: true,
+        }
+
+        //make a screenshot on click
+        screenshot.addEventListener("click", () => {
+            map.getCanvas().toBlob(function (blob) {
+                // Create a download link for the image
+                var link = document.createElement('a');
+                link.download = 'screenshot.png';
+                link.href = URL.createObjectURL(blob);
+                link.click();
+                // Show the screenshot button again
+                screenshotBtn.style.display = 'block';
+            });
+        })
+
+        satelliteLayer && satelliteLayer.addEventListener("input", function () {
+            console.log('111', 111);
+            if (satelliteLayer.checked) {
+                map.setLayoutProperty('satellite', 'visibility', 'visible');
+            } else {
+                map.setLayoutProperty('satellite', 'visibility', 'none');
+            }
+        });
+
+        drawButton && drawButton.addEventListener("click", () => {
+            draw.changeMode('draw_polygon');
+        })
+
+        map.on('draw.selectionchange', updateArea);
+
+        map.on('load', () => {
+
+            map.addSource("hillshade", {
+                type: "raster",
+                tiles: [
+                    "https://khms1.googleapis.com/kh?v=946&hl=en&x={x}&y={y}&z={z}",
+                    "https://khms0.googleapis.com/kh?v=946&hl=en&x={x}&y={y}&z={z}",
+                ]
+            });
+
+            map.addLayer({
+                id: "satellite",
+                type: "raster",
+                source: "hillshade",
+                layout: {
+                    visibility: 'none'
+                }
+            }, ...drawLlayers);
+
+            map.loadImage("img/rotate.png", function (error, image) {
+                if (error) throw error;
+                map.addImage('rotate', image);
+            });
+
+            let editMode = false;
+            let drawPolygonMode = false
+
+            const popup = new mapboxgl.Popup({
+                closeButton: false,
+                closeOnClick: false,
+                offset: [0, -20]
+            });
+
+            map.on('mousemove', (e) => {
+                if (editMode) return;
+                const features = map.queryRenderedFeatures(e.point);
+                if (features.length > 0 && features[0].properties && features[0].properties.info) {
+                    const info = features[0].properties.info
+                    popup.setLngLat(e.lngLat).setHTML(info).addTo(map);
+                } else {
+                    popup.remove()
+                }
+            })
+
+            map.on('click', (e) => {
+
+                console.log('draw.getMode()', draw.getMode());
+                if (draw.getMode() === draw.modes.DRAW_POLYGON) {
+                    drawPolygonMode = true
+                    return
+                }
+
+                const features = map.queryRenderedFeatures(e.point);
+                //get the first layer geom_
+                const layers = features.filter(d => d.layer.id.includes("geom_"))
+                if (layers.length === 0) {
+                    editMode = false
+                    draw.deleteAll()
+                } else {
+                    const layer = layers[0]
+                    console.log('layer', layer);
+
+                    const id = layer.properties.gid
+                    console.log('id', id);
+
+                    const geometryObj = mainData.layers.get(id)
+                    const geometry = geometryObj.getGeometry()
+
+                    console.log('geometry', geometry);
+
+                    draw.add(geometry)
+                    editMode = true
+
+                    selectedGeometryId = {
+                        id,
+                        geometry
+                    }
+
+                    if (geometry) {
+                        generatePropWindow(geometry)
+                    }
+                }
+
+                popup.remove()
+            })
+
+            function generatePropWindow(geometry) {
+
+                console.log('geometry', geometry);
+                const { gid: id } = geometry.properties
+                console.log('id', id);
+
+                const props = polys.getItem(id)
+
+                let polygon = geometry
+                if (geometry.type && geometry.type === "FeatureCollection") {
+                    polygon = geometry.features[0]
+                }
+
+                const color = props.fillColor || "#0080ff"
+                const name = props.name || ""
+                const number = props.number || ""
+                const image = "https://nikolsky.com.ua/wp-content/uploads/2021/02/house.png" || ""
+
+                const div = document.createElement("div")
+                const colorText = document.createElement("div")
+                colorText.innerText = "Set color"
+                const colorInput = document.createElement("input")
+                colorInput.className = "color-input"
+                colorInput.type = "color"
+                colorInput.value = color
+                colorInput.addEventListener("input", e => {
+                    const value = e.target.value
+                    updateProp(id, "fillColor", value)
+                })
+
+                const nameInput = document.createElement("input")
+                nameInput.placeholder = "set name"
+                nameInput.value = name
+                nameInput.addEventListener("input", e => {
+                    const value = e.target.value
+                    updateProp(id, "name", value)
+                })
+
+                const nameAngleSlider = generateSlider(0, 360, 0, (value) => {
+                    updateProp(id, "nameAngle", +value)
+                })
+
+
+                const numberInput = document.createElement("input")
+                numberInput.placeholder = "set number"
+                numberInput.value = number
+                numberInput.addEventListener("input", e => {
+                    const value = e.target.value
+                    updateProp(id, "number", value)
+                })
+                const numberAngleSlider = generateSlider(0, 360, 0, (value) => {
+                    updateProp(id, "numberAngle", +value)
+                })
+
+                const fileInput = document.createElement("input")
+                fileInput.type = "file"
+                fileInput.accept = "image/png, image/jpeg, image/gif , image/webp"
+                fileInput.addEventListener('change', (event) => {
+                    const image = "https://nikolsky.com.ua/wp-content/uploads/2021/02/house.png"
+                });
+
+                const imageSizeSlider = document.createElement("input")
+                imageSizeSlider.type = "range"
+                imageSizeSlider.min = 0
+                imageSizeSlider.max = 50
+                imageSizeSlider.value = 5
+                imageSizeSlider.addEventListener("input", e => {
+                    const value = e.target.value
+                    updateProp(id, "imageSize", value)
+                })
+
+                const imageAngleSlider = document.createElement("input")
+                imageAngleSlider.type = "range"
+                imageAngleSlider.min = 0
+                imageAngleSlider.max = 360
+                imageAngleSlider.value = 5
+                imageAngleSlider.addEventListener("input", e => {
+                    const value = e.target.value
+                    updateProp(id, "imageAngle", value)
+                })
+
+                div.appendChild(colorText)
+                div.appendChild(colorInput)
+                div.appendChild(numberInput)
+                div.appendChild(nameInput)
+                div.appendChild(nameAngleSlider)
+                div.appendChild(numberAngleSlider)
+                div.appendChild(fileInput)
+                div.appendChild(imageSizeSlider)
+                div.appendChild(imageAngleSlider)
+
+                // div.appendChild(saveButton)
+                polygonPropsDiv.replaceChildren(div)
+            }
+
+            function updateProp(id, prop, value) {
+                polys.updateProp(id, prop, value)
+                console.log('poly', polys.getItem(id));
+            }
+
+
+            function generateSlider(min, max, def, eventCallback) {
+                const slider = document.createElement("input")
+                slider.type = "range"
+                slider.min = min
+                slider.max = max
+                slider.value = def
+                slider.addEventListener("input", e => {
+                    const value = e.target.value
+                    if (typeof eventCallback === 'function') {
+                        eventCallback(value)
+                    }
+                })
+                return slider
+            }
+
+
+            //debounce for rotation 
+            const updateFunc = (e) => {
+                const geometry = e.features[0]
+                if (!geometry) return;
+                const id = geometry.properties.gid
+                //update coordinates of the object 
+                console.log('id', id);
+                console.log('geometry-->', e.features[0]);
+
+                const geometryObj = mainData.layers.get(id)
+                geometryObj.updateGeometry(draw.getSelected())
+
+                editMode = false //SET the ability to select it again 
+                draw.deleteAll()
+
+                updateProp(geometry)
+
+            }
+            const debounceMove = _.debounce(updateFunc, 1)
+            const debounceRotate = _.debounce(updateFunc, 2000) //more time for rotate
+
+            map.on("draw.update", (e) => {
+                console.log('debouncedUpdateEvent');
+                const mode = draw.getMode()
+                const seconds = mode === "scaleRotateMode" ? debounceRotate(e) : debounceMove(e)
+
+                const selectedGeometry = draw.getSelected()
+                // console.log('geometry', selectedGeometry);
+
+                const id = selectedGeometry.features[0].properties.gid
+                // console.log('id', id);
+
+                const geometryObj = mainData.layers.get(id)
+                geometryObj.updateGeometry(selectedGeometry)
+
+            })
+            map.on("draw.selectionchange", (e) => {
+                console.log('draw.selectionchange',);
+            })
+            map.on("draw.modechange", (e) => {
+                console.log('draw.modechange', draw.getMode());
+                console.log('draw.modechange', draw.getSelected());
+
+                if (drawPolygonMode) {
+
+                    drawPolygonMode = false;
+
+                    const coordinates = draw.getSelected().features[0].geometry.coordinates
+                    console.log('coordinates', coordinates);
+
+                    const geometryObj = generateLayer({
+                        polyCoordinates: draw.getSelected().features[0].geometry.coordinates[0]
+                    })
+
+                    mainData.layers.set(geometryObj.layerId, {
+                        ...geometryObj
+                    })
+
+                    const polygon = draw.getSelected().features[0]
+                    const center = turf.centerOfMass(polygon)
+                    const [lng, lat] = turf.getCoords(center)
+                    const numberPosition = draw.getSelected().features[0].geometry.coordinates[0][0]
+                    polys.addItem({
+                        id: geometryObj.layerId,
+                        geom: polygon,
+                        name: "",
+                        namePosition: [lng, lat],
+                        nameAngle: 0,
+
+                        number: "",
+                        numberPosition: numberPosition,
+                        numberAngle: 0,
+
+                        image: "",
+                        imageSize: 5,
+                        imageAngle: 0,
+                        fillColor: "#0080ff",
+                        opacity: 0.5,
+                    })
+                }
+            })
+
+
+        })
+
+        function updateArea() {
+            const geometry = draw.getSelected()
+            const area = turf.area(geometry);
+            const length = turf.length(geometry, { units: 'kilometers' });
+            const data = `
+                <div class="info-box">
+                    Size of selected shape
+                    <div> ${area.toFixed(2)} m<sup>2</sup></div>
+                    <div> ${(area * 10.764).toFixed(2)} sq.ft</div>
+                    <div> ${(area / 4047).toFixed(2)} acres</div>
+                </div>
+            `
+            polygonInfo.innerHTML = `${data}`
+        }
+
+        function generateLayer({ polyCoordinates, type = "polygon", fillColor = "#0080ff", opacity = 0.5, isImageLayer = false }) {
+
+            const layerId = generateId()
+            const geometryLayer = 'geom_' + layerId
+            const imageLayer = 'image_' + layerId
+
+            console.log('polyCoordinates', polyCoordinates);
+
+            let polygon = type === "polygon"
+                ? turf.polygon([polyCoordinates], { gid: layerId })
+                : turf.multiPolygon(polyCoordinates, { gid: layerId })
+
+            map.addSource(geometryLayer, {
+                'type': 'geojson',
+                'data': polygon
+            });
+
+            // Add a new layer to visualize the polygon.
+            map.addLayer({
+                'id': geometryLayer,
+                'type': 'fill',
+                'source': geometryLayer, // reference the data source
+                'layout': {},
+                'paint': {
+                    'fill-color': fillColor, // blue color fill
+                    'fill-opacity': opacity
+                }
+            });
+
+            if (isImageLayer) {
+                map.addSource(imageLayer, {
+                    'type': 'image',
+                    'url': isImageLayer,
+                    'coordinates': polyCoordinates.slice(0, 4)
+                });
+                map.addLayer({
+                    'id': imageLayer,
+                    'type': 'raster',
+                    'source': imageLayer,
+                    'paint': {
+                        'raster-fade-duration': 0,
+                        'raster-opacity': 0.95
+                    }
+                });
+            }
+
+            function updateGeometry(geometry) {
+                //console.log('geometry',geometry);
+                if (!geometry || !geometry.features[0]) return;
+                polygon = geometry
+                const coords = turf.getCoords(polygon.features[0])[0].slice(0, 4)
+                !map.getSource(geometryLayer) && console.error("Layer does not exist")
+                map.getSource(geometryLayer) && map.getSource(geometryLayer).setData(polygon)
+                map.getSource(imageLayer) && map.getSource(imageLayer).setCoordinates(coords)
+            }
+
+            function updateInfo(info) {
+                polygon.properties.info = info
+                !map.getSource(geometryLayer) && console.error("Layer does not exist")
+                map.getSource(geometryLayer) && map.getSource(geometryLayer).setData(polygon)
+            }
+
+            function getGeometry() {
+                return polygon;
+            }
+
+            function deleteGeometry() {
+                map.getLayer(geometryLayer) && map.removeLayer(geometryLayer)
+                map.getLayer(imageLayer) && map.removeLayer(imageLayer)
+
+                map.getSource(geometryLayer) && map.removeSource(geometryLayer)
+                map.getSource(imageLayer) && map.removeSource(imageLayer)
+            }
+
+            return Object.freeze({
+                layerId,
+                updateGeometry,
+                updateInfo,
+                getGeometry,
+                deleteGeometry
+            })
+        }
+
+        function generateId() {
+            return (new Date()).getTime()
+        }
+
+        function initMap() {
+            const input = document.getElementById("search");
+            const autocomplete = new google.maps.places.Autocomplete(input);
+            autocomplete.addListener("place_changed", () => {
+                const place = autocomplete.getPlace();
+                if (!place.geometry || !place.geometry.location) {
+                    window.alert("No details available for input: '" + place.name + "'");
+                    return;
+                }
+                console.log('place.geometry', place.geometry);
+                const { lat, lng } = place.geometry.location.toJSON()
+                map.flyTo({
+                    center: { lat, lng },
+                    zoom: 19
+                })
+            });
+        }
+
+    </script>
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBrK7zAmbEFKIyv_g6XOE3WpSq34nOYuEI&callback=initMap&libraries=places&v=weekly"
+        defer></script>
+
+</body>
+
+</html>
