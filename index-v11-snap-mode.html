@@ -354,12 +354,11 @@
 
 
         const canvas = map.getCanvasContainer();
+
         function onMove(e) {
             const coords = e.lngLat;
             canvas.style.cursor = 'grabbing';
-
             mainData.currentLayer.polygon.geometry.coordinates = [coords.lng, coords.lat];
-
             map.getSource(mainData.currentLayer.layerID)
                 .setData({
                     "type": "FeatureCollection",
@@ -384,15 +383,14 @@
             map.off('touchmove', onMove);
         }
 
+        function cursorMove() {
+            canvas.style.cursor = 'move';
 
-        // const draw = new MapboxDraw({
-        //     userProperties: true,
-        //     //  displayControlsDefault: false,
-        //     styles: ScaleRotateMode.SRStyle,
-        //     modes: Object.assign(MapboxDraw.modes, {
-        //         scaleRotateMode: ScaleRotateMode.SRMode,
-        //     }),
-        // });
+        }
+        function cursorUp() {
+            canvas.style.cursor = '';
+        }
+
 
         const draw = new MapboxDraw({
             modes: {
@@ -811,7 +809,7 @@
                                     'coordinates': firstCoordinate
                                 },
                                 'properties': {
-                                    'name': number
+                                    'name': polygon.properties.number
                                 }
                             }
                         ]
@@ -835,7 +833,7 @@
                                     'coordinates': firstCoordinate
                                 },
                                 'properties': {
-                                    'name': number
+                                    'name': polygon.properties.number
                                 }
                             }
                         ]
@@ -870,18 +868,12 @@
 
                 // When the cursor enters a feature in
                 // the point layer, prepare for dragging.
-                map.on('mouseenter', layerID, () => {
-                    canvas.style.cursor = 'move';
-                });
-                map.on('mouseleave', layerID, () => {
-                    canvas.style.cursor = '';
-                });
+                map.on('mouseenter', layerID, cursorMove);
+                map.on('mouseleave', layerID, cursorUp);
                 map.on('mousedown', layerID, (e) => {
                     // Prevent the default map drag behavior.
                     e.preventDefault();
                     canvas.style.cursor = 'grab';
-
-                    console.log('polygon', polygon);
                     mainData.currentLayer = {
                         polygon: {
                             'type': 'Feature',
@@ -890,12 +882,11 @@
                                 'coordinates': firstCoordinate
                             },
                             'properties': {
-                                'name': number
+                                'name': polygon.properties.number
                             }
                         },
                         layerID
                     }
-
                     map.on('mousemove', onMove);
                     map.once('mouseup', onUp);
                 });

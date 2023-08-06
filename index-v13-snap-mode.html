@@ -89,7 +89,6 @@
 
         .draw {
             display: flex;
-            flex-direction: column;
         }
 
         .draw>button {
@@ -224,7 +223,7 @@
         <input type="file" id="fileInput" accept="image/png, image/jpeg, image/gif , image/webp">
         <div id="imagePreview"></div>
 
-        <div class="draw" id="draw-tab">
+        <div class="draw">
             <button id="draw" class="buttons">Draw</button>
             <button id="rotate" class="buttons">Rotate</button>
             <button id="delete" class="buttons">Delete</button>
@@ -269,7 +268,6 @@
     <div id="map"></div>
 
     <script>
-        const drawTab = document.getElementById('draw-tab');
         const polygonPropsDiv = document.getElementById('polygon-props-container');
         const satelliteLayer = document.getElementById('satelliteLayer');
         const drawButton = document.getElementById("draw");
@@ -326,40 +324,50 @@
         const canvas = map.getCanvasContainer();
         let movableLayerID = 0
 
+        function onMove(e) {
+            const coords = e.lngLat;
+            canvas.style.cursor = 'grabbing';
+            polys.updateProp(movableLayerID, "numberPosition", [coords.lng, coords.lat])
+        }
 
-        const addText = document.createElement("button")
-        addText.innerText = "Add Text"
-        addText.className = "buttons"
-        addText.addEventListener("click", () => {
-
-            const id = new Date().getTime();
-            createTextLayer(new Date().getTime())
-            const item = {
-                type: "text",
-                id
-            }
-            allItems.push(item)
-        })
-        drawTab.appendChild(addText)
-
-
+        function onUp(e) {
+            const coords = e.lngLat;
+            canvas.style.cursor = '';
+            // Unbind mouse/touch events
+            map.off('mousemove', onMove);
+            map.off('touchmove', onMove);
+        }
 
         const polyItems = () => {
             const items = []
+
             const getItem = (polyId) => {
                 return items.find(d => d.id === polyId)
             }
+
             const addItem = (poly) => {
                 items.push(poly)
             }
-            const updateProp = (id, prop, value) => {
-                const item = getItem(id)
+
+            const updateProp = (layerId, prop, value) => {
+                const item = getItem(layerId)
                 if (item) {
                     item[prop] = value
-                    updateMap()
+                    updateLayer(layerId)
                 }
             }
-            const updateMap = () => {
+
+            const updateLayer = (layerId) => {
+                items
+                    .filter(d => d.id === layerId)
+                    .forEach(d => {
+                        nameLayer(d)
+                        numberLayer(d)
+                        //update polygon fill color
+                        map.setPaintProperty("geom_" + d.id, "fill-color", d.fillColor)
+                    })
+            }
+            const updateAllMap = () => {
                 items.forEach(d => {
                     nameLayer(d)
                     numberLayer(d)
@@ -373,12 +381,27 @@
                 const { id, number, numberAngle, numberPosition } = item
                 const layerID = "number_" + id
 
-                map.getLayer(layerID) && map.removeLayer(layerID)
-                map.getSource(layerID) && map.removeSource(layerID)
-
-                map.addSource(layerID, {
-                    'type': 'geojson',
-                    'data': {
+                if (!map.getSource(layerID)) {
+                    map.addSource(layerID, {
+                        'type': 'geojson',
+                        'data': {
+                            'type': 'FeatureCollection',
+                            'features': [
+                                {
+                                    'type': 'Feature',
+                                    'geometry': {
+                                        'type': 'Point',
+                                        'coordinates': numberPosition
+                                    },
+                                    'properties': {
+                                        'name': number
+                                    }
+                                }
+                            ]
+                        }
+                    })
+                } else {
+                    map.getSource(layerID).setData({
                         'type': 'FeatureCollection',
                         'features': [
                             {
@@ -392,34 +415,62 @@
                                 }
                             }
                         ]
-                    }
-                })
+                    })
+                }
 
-                map.addLayer({
-                    'id': layerID,
-                    'type': 'symbol',
-                    'source': layerID,
-                    'layout': {
-                        'text-field': ['get', 'name'],
-                        'text-font': [
-                            'Open Sans Semibold',
-                            'Arial Unicode MS Bold'
-                        ],
-                        'text-size': ['interpolate', ['linear'], ['zoom'], 0, 0, 14, 0, 16, 8, 19, 20,],
-                        'text-rotate': 0,
-                        'text-allow-overlap': true,
-                        'text-ignore-placement': true,
-                        'text-anchor': 'center',
-                        'text-justify': 'center',
-                        'text-offset': [0, 0],
-                        "text-rotation-alignment": "map"
-                    },
-                    'paint': {
-                        "text-halo-width": 2,
-                        "text-halo-blur": 2,
-                        "text-halo-color": "#fff"
-                    }
-                });
+                if (!map.getLayer(layerID)) {
+                    map.addLayer({
+                        'id': layerID,
+                        'type': 'symbol',
+                        'source': layerID,
+                        'layout': {
+                            'text-field': ['get', 'name'],
+                            'text-font': [
+                                'Open Sans Semibold',
+                                'Arial Unicode MS Bold'
+                            ],
+                            'text-size': ['interpolate', ['linear'], ['zoom'], 0, 0, 14, 0, 16, 8, 19, 20,],
+                            'text-rotate': 0,
+                            'text-allow-overlap': true,
+                            'text-ignore-placement': true,
+                            'text-anchor': 'center',
+                            'text-justify': 'center',
+                            'text-offset': [0, 0],
+                            "text-rotation-alignment": "map"
+                        },
+                        'paint': {
+                            "text-halo-width": 2,
+                            "text-halo-blur": 2,
+                            "text-halo-color": "#fff"
+                        }
+                    });
+                    console.log('adding events',);
+                    map.on('mouseenter', layerID, () => {
+                        canvas.style.cursor = 'move';
+                    });
+
+                    map.on('mouseleave', layerID, () => {
+                        canvas.style.cursor = '';
+                    });
+
+                    map.on('mousedown', layerID, (e) => {
+                        // Prevent the default map drag behavior.
+                        movableLayerID = id
+                        e.preventDefault();
+                        canvas.style.cursor = 'grab';
+                        console.log('Mouse event');
+                        map.on('mousemove', onMove);
+                        map.once('mouseup', onUp);
+                    });
+
+                    map.on('touchstart', layerID, (e) => {
+                        if (e.points.length !== 1) return;
+                        // Prevent the default map drag behavior.
+                        e.preventDefault();
+                        map.on('touchmove', onMove);
+                        map.once('touchend', onUp);
+                    });
+                }
             }
 
             const nameLayer = (item) => {
