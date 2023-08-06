@@ -408,22 +408,66 @@
                 const rotatedPolygon = turf.transformRotate(bboxPolygon, +rotationAngle);
                 const rotatedCoords = (turf.getCoords(rotatedPolygon))[0].slice(0, 4);
 
-                map.getLayer(layerID) && map.removeLayer(layerID)
-                map.getSource(layerID) && map.removeSource(layerID)
+                if (!map.getSource(layerID)) {
+                    map.addSource(layerID, {
+                        'type': 'image',
+                        'url': 'img/logos/starbucks.png',
+                        'coordinates': rotatedCoords
+                    })
+                } else {
+                    map.getSource(layerID).setCoordinates(rotatedCoords)
+                }
 
-                map.addSource(layerID, {
-                    'type': 'image',
-                    'url': 'img/logos/starbucks.png',
-                    'coordinates': rotatedCoords
-                })
-                map.addLayer({
-                    'id': layerID,
-                    'type': 'raster',
-                    'source': layerID,
-                },
-                    "number_" + id,
-                    "text_" + id
-                );
+                if (!map.getLayer(layerID)) {
+
+                    map.addLayer({
+                        'id': layerID,
+                        'type': 'raster',
+                        'source': layerID,
+                    },
+                        "number_" + id,
+                        "text_" + id
+                    );
+
+                    // function onMoveImage(e) {
+                    //     const coords = e.lngLat;
+                    //     canvas.style.cursor = 'grabbing';
+                    //     polys.updateProp(movableLayerID, "namePosition", [coords.lng, coords.lat])
+                    // }
+
+                    // function onUpImage(e) {
+                    //     const coords = e.lngLat;
+                    //     canvas.style.cursor = '';
+                    //     map.off('mousemove', onMoveName);
+                    //     map.off('touchmove', onMoveName);
+                    // }
+
+                    // map.on('mouseenter', layerID, () => {
+                    //     console.log('123',123);
+                    //     canvas.style.cursor = 'move';
+                    // });
+
+                    // map.on('mouseleave', layerID, () => {
+                    //     canvas.style.cursor = '';
+                    // });
+
+                    // map.on('mousedown', layerID, (e) => {
+                    //     movableLayerID = id
+                    //     e.preventDefault();
+                    //     canvas.style.cursor = 'grab';
+                    //     console.log('Mouse event');
+                    //     map.on('mousemove', onMoveImage);
+                    //     map.once('mouseup', onUpImage);
+                    // });
+
+                    // map.on('touchstart', layerID, (e) => {
+                    //     if (e.points.length !== 1) return;
+                    //     e.preventDefault();
+                    //     map.on('touchmove', onMoveImage);
+                    //     map.once('touchend', onUpImage);
+                    // });
+
+                }
 
             }
 
@@ -951,20 +995,18 @@
                 console.log('debouncedUpdateEvent');
                 const mode = draw.getMode()
                 const seconds = mode === "scaleRotateMode" ? debounceRotate(e) : debounceMove(e)
-
                 const selectedGeometry = draw.getSelected()
                 // console.log('geometry', selectedGeometry);
-
                 const id = selectedGeometry.features[0].properties.gid
                 // console.log('id', id);
-
                 const geometryObj = mainData.layers.get(id)
                 geometryObj.updateGeometry(selectedGeometry)
-
             })
+
             map.on("draw.selectionchange", (e) => {
                 console.log('draw.selectionchange',);
             })
+
             map.on("draw.modechange", (e) => {
                 console.log('draw.modechange', draw.getMode());
                 console.log('draw.modechange', draw.getSelected());
@@ -988,6 +1030,7 @@
                     const center = turf.centerOfMass(polygon)
                     const [lng, lat] = turf.getCoords(center)
                     const numberPosition = draw.getSelected().features[0].geometry.coordinates[0][0]
+
                     polys.addItem({
                         id: geometryObj.layerId,
                         geom: polygon,
@@ -999,9 +1042,12 @@
                         numberPosition: numberPosition,
                         numberAngle: 0,
 
+
                         image: "",
+                        imagePosition: [lng, lat],
                         imageSize: 5,
                         imageAngle: 0,
+
                         fillColor: "#0080ff",
                         opacity: 0.5,
                     })
