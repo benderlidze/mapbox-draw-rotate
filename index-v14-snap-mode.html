@@ -411,9 +411,12 @@
 
                 const bbox = turf.bbox(circle)
                 const bboxPolygon = turf.bboxPolygon(bbox)
-                const rotationAngle = imageAngle || 180;   // in degrees
+                const rotationAngle = imageAngle || 0;   // in degrees
                 const rotatedPolygon = turf.transformRotate(bboxPolygon, +rotationAngle);
                 const rotatedCoords = (turf.getCoords(rotatedPolygon))[0].slice(0, 4);
+
+                console.log('rotatedCoords', rotatedCoords);
+                console.log('rotatedCoords', rotatedCoords.reverse());
 
                 if (!map.getSource(layerID)) {
                     map.addSource(layerID, {
@@ -916,7 +919,7 @@
                             { onProgress: ({ progress }) => console.log(`${progress}% complete`) }
                         );
                         fileUrl && updateProp(id, "imageUrl", fileUrl)
-                        // fileUrl && updateProp(id, "image", fileUrl)
+                        console.log('fileUrl', fileUrl);
 
                     } catch (e) {
                         alert(`Error!\n${e.message}`);
