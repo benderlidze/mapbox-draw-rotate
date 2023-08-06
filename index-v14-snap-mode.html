@@ -20,6 +20,8 @@
 
     <script src="https://unpkg.com/mapbox-gl-draw-snap-mode"></script>
 
+    <script src="https://js.upload.io/upload-js/v2"></script>
+
     <style>
         .sectors {
             display: grid;
@@ -283,6 +285,11 @@
     <div id="map"></div>
 
     <script>
+
+        const upload = Upload({
+            apiKey: `free`
+        });
+
         const polygonPropsDiv = document.getElementById('polygon-props-container');
         const satelliteLayer = document.getElementById('satelliteLayer');
         const drawButton = document.getElementById("draw");
@@ -394,7 +401,7 @@
 
             const logoLayer = (item) => {
 
-                const { id, number, numberAngle, numberPosition, geom, imageSize, imageAngle } = item
+                const { id, number, imageUrl, numberAngle, numberPosition, geom, imageSize, imageAngle } = item
                 const layerID = "logo_" + id
                 const center = turf.centerOfMass(geom)
                 //draw sqaure
@@ -411,15 +418,17 @@
                 if (!map.getSource(layerID)) {
                     map.addSource(layerID, {
                         'type': 'image',
-                        'url': 'img/logos/starbucks.png',
+                        'url': imageUrl,
                         'coordinates': rotatedCoords
                     })
                 } else {
-                    map.getSource(layerID).setCoordinates(rotatedCoords)
+                    map.getSource(layerID).updateImage({
+                        url: imageUrl,
+                        coordinates: rotatedCoords
+                    })
                 }
 
                 if (!map.getLayer(layerID)) {
-
                     map.addLayer({
                         'id': layerID,
                         'type': 'raster',
@@ -428,45 +437,28 @@
                         "number_" + id,
                         "text_" + id
                     );
+                }
 
-                    // function onMoveImage(e) {
-                    //     const coords = e.lngLat;
-                    //     canvas.style.cursor = 'grabbing';
-                    //     polys.updateProp(movableLayerID, "namePosition", [coords.lng, coords.lat])
-                    // }
-
-                    // function onUpImage(e) {
-                    //     const coords = e.lngLat;
-                    //     canvas.style.cursor = '';
-                    //     map.off('mousemove', onMoveName);
-                    //     map.off('touchmove', onMoveName);
-                    // }
-
-                    // map.on('mouseenter', layerID, () => {
-                    //     console.log('123',123);
-                    //     canvas.style.cursor = 'move';
-                    // });
-
-                    // map.on('mouseleave', layerID, () => {
-                    //     canvas.style.cursor = '';
-                    // });
-
-                    // map.on('mousedown', layerID, (e) => {
-                    //     movableLayerID = id
-                    //     e.preventDefault();
-                    //     canvas.style.cursor = 'grab';
-                    //     console.log('Mouse event');
-                    //     map.on('mousemove', onMoveImage);
-                    //     map.once('mouseup', onUpImage);
-                    // });
-
-                    // map.on('touchstart', layerID, (e) => {
-                    //     if (e.points.length !== 1) return;
-                    //     e.preventDefault();
-                    //     map.on('touchmove', onMoveImage);
-                    //     map.once('touchend', onUpImage);
-                    // });
-
+                //helper to move the image 
+                if (!map.getSource("fill_" + id)) {
+                    map.addSource("fill_" + id, {
+                        'type': 'geojson',
+                        'data': bboxPolygon
+                    })
+                } else {
+                    map.getSource("fill_" + id).setData(bboxPolygon)
+                }
+                if (!map.getLayer("fill_" + id)) {
+                    //fill type
+                    map.addLayer({
+                        'id': "fill_" + id,
+                        'type': 'fill',
+                        'source': "fill_" + id,
+                        'paint': {
+                            'fill-color': '#0080ff',
+                            'fill-opacity': 0.5
+                        }
+                    }, layerID);
                 }
 
             }
@@ -911,9 +903,26 @@
                 const fileInput = document.createElement("input")
                 fileInput.type = "file"
                 fileInput.accept = "image/png, image/jpeg, image/gif , image/webp"
-                fileInput.addEventListener('change', (event) => {
-                    const image = "https://nikolsky.com.ua/wp-content/uploads/2021/02/house.png"
+                // fileInput.addEventListener('change', (event) => {
+                //     const image = "https://nikolsky.com.ua/wp-content/uploads/2021/02/house.png"
+                // });
+
+                //onfileselected event 
+                fileInput.addEventListener('change', async (event) => {
+                    console.log('event', event);
+                    try {
+                        const { fileUrl } = await upload.uploadFile(
+                            event.target.files[0],
+                            { onProgress: ({ progress }) => console.log(`${progress}% complete`) }
+                        );
+                        fileUrl && updateProp(id, "imageUrl", fileUrl)
+                        // fileUrl && updateProp(id, "image", fileUrl)
+
+                    } catch (e) {
+                        alert(`Error!\n${e.message}`);
+                    }
                 });
+
                 const imageSizeSlider = document.createElement("input")
                 imageSizeSlider.type = "range"
                 imageSizeSlider.min = 0
@@ -1044,6 +1053,7 @@
 
 
                         image: "",
+                        imageUrl: "",
                         imagePosition: [lng, lat],
                         imageSize: 5,
                         imageAngle: 0,
