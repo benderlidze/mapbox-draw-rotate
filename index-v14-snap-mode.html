@@ -194,6 +194,21 @@
             overflow: hidden;
             transition: max-height 0.2s ease-out;
         }
+
+        .block-wrapper {
+            border: 1px solid #ccc;
+            padding: 5px;
+            margin: 5px 0px;
+        }
+
+        input[type="range"] {
+            box-shadow: none;
+        }
+
+        input[type="file"] {
+            box-shadow: none;
+            border: none;
+        }
     </style>
 </head>
 
@@ -810,6 +825,8 @@
                     updateProp(id, "fillColor", value)
                 })
 
+                const nameBlock = document.createElement("div")
+                nameBlock.className = "block-wrapper"
                 const nameInput = document.createElement("input")
                 nameInput.placeholder = "set name"
                 nameInput.value = name
@@ -817,12 +834,15 @@
                     const value = e.target.value
                     updateProp(id, "name", value)
                 })
-
                 const nameAngleSlider = generateSlider(0, 360, 0, (value) => {
                     updateProp(id, "nameAngle", +value)
                 })
+                nameBlock.appendChild(nameInput)
+                nameBlock.appendChild(nameAngleSlider)
 
 
+                const numberBlock = document.createElement("div")
+                numberBlock.className = "block-wrapper"
                 const numberInput = document.createElement("input")
                 numberInput.placeholder = "set number"
                 numberInput.value = number
@@ -833,14 +853,18 @@
                 const numberAngleSlider = generateSlider(0, 360, 0, (value) => {
                     updateProp(id, "numberAngle", +value)
                 })
+                numberBlock.appendChild(numberInput)
+                numberBlock.appendChild(numberAngleSlider)
 
+
+                const fileBlock = document.createElement("div")
+                fileBlock.className = "block-wrapper"
                 const fileInput = document.createElement("input")
                 fileInput.type = "file"
                 fileInput.accept = "image/png, image/jpeg, image/gif , image/webp"
                 fileInput.addEventListener('change', (event) => {
                     const image = "https://nikolsky.com.ua/wp-content/uploads/2021/02/house.png"
                 });
-
                 const imageSizeSlider = document.createElement("input")
                 imageSizeSlider.type = "range"
                 imageSizeSlider.min = 0
@@ -850,7 +874,6 @@
                     const value = e.target.value
                     updateProp(id, "imageSize", value)
                 })
-
                 const imageAngleSlider = document.createElement("input")
                 imageAngleSlider.type = "range"
                 imageAngleSlider.min = 0
@@ -860,16 +883,17 @@
                     const value = e.target.value
                     updateProp(id, "imageAngle", value)
                 })
+                fileBlock.appendChild(fileInput)
+                fileBlock.appendChild(imageSizeSlider)
+                fileBlock.appendChild(imageAngleSlider)
+
 
                 div.appendChild(colorText)
                 div.appendChild(colorInput)
-                div.appendChild(numberInput)
-                div.appendChild(nameInput)
-                div.appendChild(nameAngleSlider)
-                div.appendChild(numberAngleSlider)
-                div.appendChild(fileInput)
-                div.appendChild(imageSizeSlider)
-                div.appendChild(imageAngleSlider)
+
+                div.appendChild(nameBlock)
+                div.appendChild(numberBlock)
+                div.appendChild(fileBlock)
 
                 // div.appendChild(saveButton)
                 polygonPropsDiv.replaceChildren(div)
