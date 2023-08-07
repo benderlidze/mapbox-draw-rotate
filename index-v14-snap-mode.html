@@ -415,7 +415,6 @@
                 const rotatedPolygon = turf.transformRotate(bboxPolygon, +rotationAngle);
                 const rotatedCoords = (turf.getCoords(rotatedPolygon))[0].slice(0, 4);
 
-                console.log('rotatedCoords', rotatedCoords);
                 console.log('rotatedCoords', rotatedCoords.reverse());
 
                 if (!map.getSource(layerID)) {
@@ -912,6 +911,7 @@
 
                 //onfileselected event 
                 fileInput.addEventListener('change', async (event) => {
+                    /*
                     console.log('event', event);
                     try {
                         const { fileUrl } = await upload.uploadFile(
@@ -923,6 +923,27 @@
 
                     } catch (e) {
                         alert(`Error!\n${e.message}`);
+                    }*/
+
+                    const file = event.target.files[0]
+
+                    if (file) {
+                        const formData = new FormData();
+                        formData.append('image', file);
+
+                        try {
+                            const response = await fetch('https://serg.one/drawingToolUpload/upload.php', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            const result = await response.json();
+                            console.log(result);
+
+                            result && result.fullURL && updateProp(id, "imageUrl", result.fullURL)
+
+                        } catch (error) {
+                            console.error(error);
+                        }
                     }
                 });
 
