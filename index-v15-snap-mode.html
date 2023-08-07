@@ -8,8 +8,8 @@
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.11.0/mapbox-gl.css" rel="stylesheet">
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.11.0/mapbox-gl.js"></script>
     <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
-    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.js"></script>
-    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.css"
+    <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.2/mapbox-gl-draw.js'></script>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.2/mapbox-gl-draw.css"
         type="text/css">
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
 
@@ -377,6 +377,7 @@
                 }
             }
 
+
             const updateLayer = (layerId) => {
                 items
                     .filter(d => d.id === layerId)
@@ -389,6 +390,18 @@
                     })
             }
 
+            // const updateLayer = _.debounce(function (layerId) {
+            //     items
+            //         .filter(d => d.id === layerId)
+            //         .forEach(d => {
+            //             numberLayer(d)
+            //             nameLayer(d)
+            //             logoLayer(d)
+            //             //update polygon fill color
+            //             map.setPaintProperty("geom_" + d.id, "fill-color", d.fillColor)
+            //         })
+            // }, 100)
+
             // const updateAllMap = () => {
             //     items.forEach(d => {
             //         numberLayer(d)
@@ -398,12 +411,19 @@
             //         map.setPaintProperty("geom_" + d.id, "fill-color", d.fillColor)
             //     })
             // }
+            const debounceUpdate = _.debounce(function (layerID, imageUrl, rotatedCoords) {
+                console.log('here');
+                map.getSource(layerID).updateImage({
+                    url: imageUrl,
+                    coordinates: rotatedCoords
+                })
+            }, 100)
 
             const logoLayer = (item) => {
 
-                const { id, number, imageUrl, numberAngle, numberPosition, geom, imageSize, imageAngle } = item
+                const { id, number, imageUrl, imagePosition, geom, imageSize, imageAngle } = item
                 const layerID = "logo_" + id
-                const center = turf.centerOfMass(geom)
+                const center = imagePosition ? turf.point(imagePosition) : turf.centerOfMass(geom)//init with center of mass
                 //draw sqaure
                 const radius = 0.001 * imageSize || 0.001;
                 const options = { steps: 25, units: 'kilometers' };
@@ -413,9 +433,7 @@
                 const bboxPolygon = turf.bboxPolygon(bbox)
                 const rotationAngle = imageAngle || 0;   // in degrees
                 const rotatedPolygon = turf.transformRotate(bboxPolygon, +rotationAngle);
-                const rotatedCoords = (turf.getCoords(rotatedPolygon))[0].slice(0, 4);
-
-                console.log('rotatedCoords', rotatedCoords.reverse());
+                const rotatedCoords = (turf.getCoords(rotatedPolygon))[0].slice(0, 4).reverse()
 
                 if (!map.getSource(layerID)) {
                     map.addSource(layerID, {
@@ -424,10 +442,7 @@
                         'coordinates': rotatedCoords
                     })
                 } else {
-                    map.getSource(layerID).updateImage({
-                        url: imageUrl,
-                        coordinates: rotatedCoords
-                    })
+                    debounceUpdate(layerID, imageUrl, rotatedCoords)
                 }
 
                 if (!map.getLayer(layerID)) {
@@ -442,25 +457,71 @@
                 }
 
                 //helper to move the image 
-                if (!map.getSource("fill_" + id)) {
-                    map.addSource("fill_" + id, {
+                const helperLayerID = "helper_" + id
+                if (!map.getSource(helperLayerID)) {
+                    map.addSource(helperLayerID, {
                         'type': 'geojson',
                         'data': bboxPolygon
                     })
                 } else {
-                    map.getSource("fill_" + id).setData(bboxPolygon)
+                    map.getSource(helperLayerID).setData(rotatedPolygon)
                 }
-                if (!map.getLayer("fill_" + id)) {
+                if (!map.getLayer(helperLayerID)) {
                     //fill type
                     map.addLayer({
-                        'id': "fill_" + id,
+                        'id': helperLayerID,
                         'type': 'fill',
-                        'source': "fill_" + id,
+                        'source': helperLayerID,
                         'paint': {
-                            'fill-color': '#0080ff',
-                            'fill-opacity': 0.5
+                            'fill-color': 'red',
+                            'fill-opacity': 0.1,
+                            'fill-outline-color': 'white',
                         }
-                    }, layerID);
+                        //}, layerID);
+                    });
+                    map.addLayer({
+                        'id': helperLayerID + "_line",
+                        'type': 'line',
+                        'source': helperLayerID,
+                        'paint': {
+                            'line-color': 'red',
+                            'line-width': 2,
+                        }
+                    });
+
+                    function onMove(e) {
+                        const coords = e.lngLat;
+                        canvas.style.cursor = 'grabbing';
+                        polys.updateProp(movableLayerID, "imagePosition", [coords.lng, coords.lat])
+                    }
+
+                    function onUp(e) {
+                        const coords = e.lngLat;
+                        canvas.style.cursor = '';
+                        map.off('mousemove', onMove);
+                        map.off('touchmove', onMove);
+                    }
+
+                    map.on('mouseenter', helperLayerID, () => {
+                        canvas.style.cursor = 'move';
+                    });
+                    map.on('mouseleave', helperLayerID, () => {
+                        canvas.style.cursor = '';
+                    });
+                    map.on('mousedown', helperLayerID, (e) => {
+                        movableLayerID = id
+                        e.preventDefault();
+                        canvas.style.cursor = 'grab';
+                        map.on('mousemove', onMove);
+                        map.once('mouseup', onUp);
+                    });
+                    map.on('touchstart', helperLayerID, (e) => {
+                        if (e.points.length !== 1) return;
+                        e.preventDefault();
+                        map.on('touchmove', onMove);
+                        map.once('touchend', onUp);
+                    });
+
                 }
 
             }
@@ -741,6 +802,10 @@
             }
         });
 
+        deleteButton.addEventListener("click", () => {
+
+        })
+
         drawButton && drawButton.addEventListener("click", () => {
             draw.changeMode('draw_polygon');
         })
@@ -807,16 +872,9 @@
                     draw.deleteAll()
                 } else {
                     const layer = layers[0]
-                    console.log('layer', layer);
-
                     const id = layer.properties.gid
-                    console.log('id', id);
-
                     const geometryObj = mainData.layers.get(id)
                     const geometry = geometryObj.getGeometry()
-
-                    console.log('geometry', geometry);
-
                     draw.add(geometry)
                     editMode = true
 
