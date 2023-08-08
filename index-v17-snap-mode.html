@@ -211,6 +211,13 @@
             box-shadow: none;
             border: none;
         }
+
+        .flex-container {
+            display: flex;
+            align-content: center;
+            align-items: center;
+            flex-direction: row;
+        }
     </style>
 </head>
 
@@ -1062,6 +1069,10 @@
                 updateProp(id, "fillColor", value)
             })
 
+            //NAME
+            const nameBlockFlexContainer = document.createElement("div")
+            nameBlockFlexContainer.className = "flex-container"
+
             const nameBlock = document.createElement("div")
             nameBlock.className = "block-wrapper"
             const nameInput = document.createElement("input")
@@ -1071,12 +1082,35 @@
                 const value = e.target.value
                 updateProp(id, "name", value)
             })
+
+            const nameAngleSliderLabel = document.createElement("div")
+            nameAngleSliderLabel.innerText = "Name angle"
+
             const nameAngleSlider = generateSlider(0, 360, 0, (value) => {
                 updateProp(id, "nameAngle", +value)
+                nameAngleInput.value = value
             })
-            nameBlock.appendChild(nameInput)
-            nameBlock.appendChild(nameAngleSlider)
 
+            const nameAngleInput = document.createElement("input")
+            nameAngleInput.type = "number"
+            nameAngleInput.min = 0
+            nameAngleInput.max = 360
+            nameAngleInput.addEventListener("input", e => {
+                const value = e.target.value
+                nameAngleSlider.value = value
+                updateProp(id, "nameAngle", +value)
+            })
+
+            nameBlockFlexContainer.appendChild(nameAngleSliderLabel)
+            nameBlockFlexContainer.appendChild(nameAngleSlider)
+            nameBlockFlexContainer.appendChild(nameAngleInput)
+
+            nameBlock.appendChild(nameInput)
+            nameBlock.appendChild(nameBlockFlexContainer)
+
+            //NUMBER
+            const numberBlockFlexContainer = document.createElement("div")
+            numberBlockFlexContainer.className = "flex-container"
 
             const numberBlock = document.createElement("div")
             numberBlock.className = "block-wrapper"
@@ -1089,9 +1123,28 @@
             })
             const numberAngleSlider = generateSlider(0, 360, 0, (value) => {
                 updateProp(id, "numberAngle", +value)
+                numberAngleInput.value = value
             })
+
+            const numberAngleSliderLabel = document.createElement("div")
+            numberAngleSliderLabel.innerText = "Number angle"
+
+            const numberAngleInput = document.createElement("input")
+            numberAngleInput.type = "number"
+            numberAngleInput.min = 0
+            numberAngleInput.max = 360
+            numberAngleInput.addEventListener("input", e => {
+                const value = e.target.value
+                numberAngleSlider.value = value
+                updateProp(id, "numberAngle", +value)
+            })
+
+            numberBlockFlexContainer.appendChild(numberAngleSliderLabel)
+            numberBlockFlexContainer.appendChild(numberAngleSlider)
+            numberBlockFlexContainer.appendChild(numberAngleInput)
+
             numberBlock.appendChild(numberInput)
-            numberBlock.appendChild(numberAngleSlider)
+            numberBlock.appendChild(numberBlockFlexContainer)
 
 
             const fileBlock = document.createElement("div")
@@ -1123,6 +1176,12 @@
                 }
             });
 
+            const flexContainer = document.createElement("div")
+            flexContainer.className = "flex-container"
+
+            const imageSizeSliderLabel = document.createElement("div")
+            imageSizeSliderLabel.innerText = "Image size"
+
             const imageSizeSlider = document.createElement("input")
             imageSizeSlider.type = "range"
             imageSizeSlider.min = 0
@@ -1130,8 +1189,32 @@
             imageSizeSlider.value = 5
             imageSizeSlider.addEventListener("input", e => {
                 const value = e.target.value
+                imageSizeInput.value = value
                 updateProp(id, "imageSize", value)
             })
+            const imageSizeInput = document.createElement("input")
+            imageSizeInput.type = "number"
+            imageSizeInput.min = 0
+            imageSizeInput.max = 50
+            imageSizeInput.addEventListener("input", e => {
+                const value = e.target.value
+                imageSizeSlider.value = value
+                updateProp(id, "imageSize", value)
+
+            })
+
+            flexContainer.appendChild(imageSizeSliderLabel)
+            flexContainer.appendChild(imageSizeSlider)
+            flexContainer.appendChild(imageSizeInput)
+
+
+            //IMAGE ANGLE 
+            const imageAngleSliderContainer = document.createElement("div")
+            imageAngleSliderContainer.className = "flex-container"
+
+            const imageAngleSliderLabel = document.createElement("div")
+            imageAngleSliderLabel.innerText = "Image angle"
+
             const imageAngleSlider = document.createElement("input")
             imageAngleSlider.type = "range"
             imageAngleSlider.min = 0
@@ -1139,11 +1222,29 @@
             imageAngleSlider.value = 5
             imageAngleSlider.addEventListener("input", e => {
                 const value = e.target.value
+                imageAngleInput.value = value
                 updateProp(id, "imageAngle", value)
             })
+
+            const imageAngleInput = document.createElement("input")
+            imageAngleInput.type = "number"
+            imageAngleInput.min = 0
+            imageAngleInput.max = 360
+            imageAngleInput.addEventListener("input", e => {
+                const value = e.target.value
+                imageAngleSlider.value = value
+                updateProp(id, "imageAngle", value)
+            })
+
+
+            imageAngleSliderContainer.appendChild(imageAngleSliderLabel)
+            imageAngleSliderContainer.appendChild(imageAngleSlider)
+            imageAngleSliderContainer.appendChild(imageAngleInput)
+
+
             fileBlock.appendChild(fileInput)
-            fileBlock.appendChild(imageSizeSlider)
-            fileBlock.appendChild(imageAngleSlider)
+            fileBlock.appendChild(flexContainer)
+            fileBlock.appendChild(imageAngleSliderContainer)
 
 
             div.appendChild(colorText)
