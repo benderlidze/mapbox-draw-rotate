@@ -721,7 +721,7 @@ tr:nth-child(even) {
   background-color: white;
   padding: 20px;
   z-index: 100;
-  width: 340px;
+  width: 350px;
   
   display: flex;
   flex-direction: column;

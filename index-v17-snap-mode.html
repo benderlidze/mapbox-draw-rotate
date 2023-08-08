@@ -217,6 +217,7 @@
             align-content: center;
             align-items: center;
             flex-direction: row;
+            justify-content: space-between;
         }
     </style>
 </head>
@@ -373,10 +374,8 @@
             }
 
             const addItem = (poly) => {
-                items.push({
-                    ...poly,
-                    ...geometryLayer(poly)
-                })
+                items.push(poly)
+                geometryLayer(poly)
             }
 
             const updateProp = (layerId, prop, value) => {
@@ -434,13 +433,14 @@
 
             const geometryLayer = (item) => {
 
-                console.log('item=========>>>>>>', item);
                 const { id, geom, fillColor } = item
                 const layerID = "geometry_" + id
-                console.log('geom', geom);
+
+                //after move fix!!!!!!!!!
+                const geometry = geom.type === "FeatureCollection" ? geom.features[0] : geom
 
                 const data = {
-                    ...geom,
+                    ...geometry,
                     id: id,
                     properties: { ...geom.properties, id, fillColor }
                 }
@@ -451,8 +451,11 @@
                         'data': data
                     });
                 } else {
+
+                    console.log('data============>>>>>', data);
                     map.getSource(layerID).setData(data)
                 }
+
 
                 const clickEvent = (e) => {
                     draw.add(polys.getItem(id).geom)//get updated geometry
@@ -467,6 +470,7 @@
                 }
 
                 if (!map.getLayer(layerID)) {
+                    console.log('!!!!!!!!!!!!!!!!!!!!!!!!');
                     map.addLayer({
                         'id': layerID,
                         'type': 'fill',
@@ -486,9 +490,9 @@
                     map.off("click", layerID, clickEvent)
                 }
 
-                return {
-                    deleteLayer
-                }
+                // return {
+                //     deleteLayer
+                // }
             }
 
             const logoLayer = (item) => {
@@ -1094,6 +1098,7 @@
             const nameAngleInput = document.createElement("input")
             nameAngleInput.type = "number"
             nameAngleInput.min = 0
+            nameAngleInput.value = 0
             nameAngleInput.max = 360
             nameAngleInput.addEventListener("input", e => {
                 const value = e.target.value
@@ -1132,6 +1137,7 @@
             const numberAngleInput = document.createElement("input")
             numberAngleInput.type = "number"
             numberAngleInput.min = 0
+            numberAngleInput.value = 0
             numberAngleInput.max = 360
             numberAngleInput.addEventListener("input", e => {
                 const value = e.target.value
@@ -1195,6 +1201,7 @@
             const imageSizeInput = document.createElement("input")
             imageSizeInput.type = "number"
             imageSizeInput.min = 0
+            imageSizeInput.value = 0
             imageSizeInput.max = 50
             imageSizeInput.addEventListener("input", e => {
                 const value = e.target.value
@@ -1219,7 +1226,7 @@
             imageAngleSlider.type = "range"
             imageAngleSlider.min = 0
             imageAngleSlider.max = 360
-            imageAngleSlider.value = 5
+            imageAngleSlider.value = 0
             imageAngleSlider.addEventListener("input", e => {
                 const value = e.target.value
                 imageAngleInput.value = value
@@ -1229,6 +1236,7 @@
             const imageAngleInput = document.createElement("input")
             imageAngleInput.type = "number"
             imageAngleInput.min = 0
+            imageAngleInput.value = 0
             imageAngleInput.max = 360
             imageAngleInput.addEventListener("input", e => {
                 const value = e.target.value
@@ -1236,20 +1244,16 @@
                 updateProp(id, "imageAngle", value)
             })
 
-
             imageAngleSliderContainer.appendChild(imageAngleSliderLabel)
             imageAngleSliderContainer.appendChild(imageAngleSlider)
             imageAngleSliderContainer.appendChild(imageAngleInput)
-
 
             fileBlock.appendChild(fileInput)
             fileBlock.appendChild(flexContainer)
             fileBlock.appendChild(imageAngleSliderContainer)
 
-
             div.appendChild(colorText)
             div.appendChild(colorInput)
-
             div.appendChild(nameBlock)
             div.appendChild(numberBlock)
             div.appendChild(fileBlock)
