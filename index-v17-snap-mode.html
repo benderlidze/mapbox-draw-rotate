@@ -381,8 +381,27 @@
             }
 
             const deleteItem = (id) => {
+                //TODO rebuild and add delete mouse events too
                 const item = getItem(id)
                 console.log('item', item);
+
+                map.removeLayer("geometry_" + id)
+                map.removeSource("geometry_" + id)
+
+                map.removeLayer("number_" + id)
+                map.removeSource("number_" + id)
+
+                map.removeLayer("text_" + id)
+                map.removeSource("text_" + id)
+
+                map.removeLayer("logo_" + id)
+                map.removeSource("logo_" + id)
+                map.removeLayer("helper_" + id)
+                map.removeLayer("helper_" + id + "_line")
+                map.removeSource("helper_" + id)
+
+                items.splice(items.indexOf(item), 1)
+                draw.deleteAll()
             }
 
             const updateLayer = (layerId) => {
@@ -408,7 +427,7 @@
 
             const geometryLayer = (item) => {
 
-                console.log('item', item);
+                console.log('item=========>>>>>>', item);
                 const { id, geom, fillColor } = item
                 const layerID = "geometry_" + id
                 console.log('geom', geom);
@@ -416,7 +435,7 @@
                 const data = {
                     ...geom,
                     id: id,
-                    properties: { ...geom.properties, id }
+                    properties: { ...geom.properties, id, fillColor }
                 }
 
                 if (!map.getSource(layerID)) {
@@ -427,8 +446,6 @@
                 } else {
                     map.getSource(layerID).setData(data)
                 }
-
-                console.log('data=============>', data);
 
                 const clickEvent = (e) => {
                     draw.add(polys.getItem(id).geom)//get updated geometry
@@ -449,7 +466,7 @@
                         'source': layerID,
                         'layout': {},
                         'paint': {
-                            'fill-color': fillColor,
+                            'fill-color': ['get', 'fillColor'],
                             'fill-opacity': 0.8
                         }
                     });
@@ -858,8 +875,10 @@
                 const polyObj = polys.getItem(selectedGeometryId.id)
                 console.log('polyObj', polyObj);
 
-                polyObj.deleteLayer()
-                draw.deleteAll()
+                // polyObj.deleteLayer()
+                // draw.deleteAll()
+
+                polys.deleteItem(selectedGeometryId.id)
             }
 
         })
@@ -984,11 +1003,6 @@
                     })
                 }
             })
-
-
-
-
-
 
         })
 
