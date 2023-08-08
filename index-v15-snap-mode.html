@@ -1129,6 +1129,7 @@
                         ...geometryObj
                     })
 
+                    
                     const polygon = draw.getSelected().features[0]
                     const center = turf.centerOfMass(polygon)
                     const [lng, lat] = turf.getCoords(center)
@@ -1138,6 +1139,7 @@
                         id: geometryObj.layerId,
                         obj: geometryObj,
                         geom: polygon,
+
                         name: "",
                         namePosition: [lng, lat],
                         nameAngle: 0,
@@ -1145,7 +1147,6 @@
                         number: "",
                         numberPosition: numberPosition,
                         numberAngle: 0,
-
 
                         image: "",
                         imageUrl: "img/logos/dummy_icon.png",
@@ -1205,16 +1206,6 @@
                     'fill-opacity': opacity
                 }
             });
-
-            // map.addLayer({
-            //     'id': geometryLayer + "_line",
-            //     'type': 'line',
-            //     'source': geometryLayer,
-            //     'paint': {
-            //         'line-color': 'white',
-            //         'line-width': 5,
-            //     }
-            // });
 
             function updateGeometry(geometry) {
                 //console.log('geometry',geometry);

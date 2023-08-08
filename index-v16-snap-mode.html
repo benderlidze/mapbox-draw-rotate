@@ -367,6 +367,7 @@
 
             const addItem = (poly) => {
                 items.push(poly)
+                geometryLayer(poly)
             }
 
             const updateProp = (layerId, prop, value) => {
@@ -377,47 +378,64 @@
                 }
             }
 
-
             const updateLayer = (layerId) => {
                 items
                     .filter(d => d.id === layerId)
                     .forEach(d => {
+                        geometryLayer(d)
                         numberLayer(d)
                         nameLayer(d)
                         logoLayer(d)
                         //update polygon fill color
-                        map.setPaintProperty("geom_" + d.id, "fill-color", d.fillColor)
+                        // map.setPaintProperty("geom_" + d.id, "fill-color", d.fillColor)
                     })
             }
 
-            // const updateLayer = _.debounce(function (layerId) {
-            //     items
-            //         .filter(d => d.id === layerId)
-            //         .forEach(d => {
-            //             numberLayer(d)
-            //             nameLayer(d)
-            //             logoLayer(d)
-            //             //update polygon fill color
-            //             map.setPaintProperty("geom_" + d.id, "fill-color", d.fillColor)
-            //         })
-            // }, 100)
-
-            // const updateAllMap = () => {
-            //     items.forEach(d => {
-            //         numberLayer(d)
-            //         nameLayer(d)
-            //         logoLayer(d)
-            //         //set fill color
-            //         map.setPaintProperty("geom_" + d.id, "fill-color", d.fillColor)
-            //     })
-            // }
             const debounceUpdate = _.debounce(function (layerID, imageUrl, rotatedCoords) {
-                console.log('here');
+                //debounce image update since it's too slow
                 map.getSource(layerID).updateImage({
                     url: imageUrl,
                     coordinates: rotatedCoords
                 })
             }, 100)
+
+            const geometryLayer = (item) => {
+
+                console.log('item', item);
+                const { id, geom, fillColor } = item
+                const layerID = "geometry_" + id
+                console.log('geom', geom);
+
+                if (!map.getSource(layerID)) {
+                    map.addSource(layerID, {
+                        'type': 'geojson',
+                        'data': {
+                            ...geom,
+                            id,
+                            properties: { ...geom.properties, id }
+                        }
+                    });
+                } else {
+                    map.getSource(layerID).setData({
+                        ...geom,
+                        id,
+                        properties: { ...geom.properties, id }
+                    })
+                }
+
+                if (!map.getLayer(layerID)) {
+                    map.addLayer({
+                        'id': layerID,
+                        'type': 'fill',
+                        'source': layerID,
+                        'layout': {},
+                        'paint': {
+                            'fill-color': fillColor,
+                            'fill-opacity': 0.8
+                        }
+                    });
+                }
+            }
 
             const logoLayer = (item) => {
 
@@ -876,32 +894,104 @@
                 }
 
                 const features = map.queryRenderedFeatures(e.point);
+                console.log('features', features);
                 //get the first layer geom_
-                const layers = features.filter(d => d.layer.id.includes("geom_"))
+                const layers = features.filter(d => d.layer.id.includes("geometry_"))
                 if (layers.length === 0) {
                     editMode = false
                     draw.deleteAll()
                 } else {
+                    console.log('layers', layers);
                     const layer = layers[0]
-                    const id = layer.properties.gid
-                    const geometryObj = mainData.layers.get(id)
-                    const geometry = geometryObj.getGeometry()
-
+                    const id = layer.properties.id
+                    console.log('id', id);
+                    const geometry = polys.getItem(id).geom
                     draw.add(geometry)
-
                     editMode = true
                     selectedGeometryId = {
                         id,
                         geometry
                     }
-
-                    if (geometry) {
-                        generatePropWindow(geometry)
-                    }
                 }
 
-                popup.remove()
             })
+
+            map.on("draw.update", (e) => {
+                const mode = draw.getMode()
+                const selectedGeometry = draw.getSelected()
+                console.log('geometry', selectedGeometry);
+                const id = selectedGeometry.features[0].id
+
+                console.log('id', id);
+                // const geometryObj = mainData.layers.get(id)
+                // geometryObj.updateGeometry(selectedGeometry)
+
+                const item = polys.getItem(id)
+                console.log('item', item);
+
+                if (polys.getItem(id)) {
+                    console.log('selectedGeometry', selectedGeometry);
+                    updateProp(id, "geom", selectedGeometry)
+                } else {
+                    console.error("no item found")
+                }
+            })
+
+            map.on("draw.selectionchange", (e) => {
+                console.log('draw.selectionchange',);
+            })
+
+            map.on("draw.modechange", (e) => {
+                console.log('draw.modechange', draw.getMode());
+                console.log('draw.modechange', draw.getSelected());
+
+                if (drawPolygonMode) {
+
+                    drawPolygonMode = false;
+
+                    const coordinates = draw.getSelected().features[0].geometry.coordinates
+                    console.log('draw.getSelected()', draw.getSelected());
+
+                    // const geometryObj = generateLayer({
+                    //     polyCoordinates: draw.getSelected().features[0].geometry.coordinates[0]
+                    // })
+                    // mainData.layers.set(geometryObj.layerId, {
+                    //     ...geometryObj
+                    // })
+                    //const layerId = generateId()
+
+                    const layerId = draw.getSelected().features[0].id
+                    const polygon = draw.getSelected().features[0]
+                    const center = turf.centerOfMass(polygon)
+                    const [lng, lat] = turf.getCoords(center)
+                    const numberPosition = draw.getSelected().features[0].geometry.coordinates[0][0]
+
+
+
+                    polys.addItem({
+                        id: layerId,
+                        //obj: geometryObj,
+                        geom: polygon,
+
+                        name: "name",
+                        namePosition: [lng, lat],
+                        nameAngle: 0,
+
+                        number: "number",
+                        numberPosition: numberPosition,
+                        numberAngle: 0,
+
+                        imageUrl: "img/logos/dummy_icon.png",
+                        imagePosition: [lng, lat],
+                        imageSize: 5,
+                        imageAngle: 0,
+
+                        fillColor: "#0080ff",
+                        opacity: 0.5,
+                    })
+                }
+            })
+
 
             function generatePropWindow(geometryObject) {
 
@@ -975,28 +1065,10 @@
                 const fileInput = document.createElement("input")
                 fileInput.type = "file"
                 fileInput.accept = "image/png, image/jpeg, image/gif , image/webp"
-                // fileInput.addEventListener('change', (event) => {
-                //     const image = "https://nikolsky.com.ua/wp-content/uploads/2021/02/house.png"
-                // });
 
                 //onfileselected event 
                 fileInput.addEventListener('change', async (event) => {
-                    /*
-                    console.log('event', event);
-                    try {
-                        const { fileUrl } = await upload.uploadFile(
-                            event.target.files[0],
-                            { onProgress: ({ progress }) => console.log(`${progress}% complete`) }
-                        );
-                        fileUrl && updateProp(id, "imageUrl", fileUrl)
-                        console.log('fileUrl', fileUrl);
-
-                    } catch (e) {
-                        alert(`Error!\n${e.message}`);
-                    }*/
-
                     const file = event.target.files[0]
-
                     if (file) {
                         const formData = new FormData();
                         formData.append('image', file);
@@ -1072,94 +1144,6 @@
                 return slider
             }
 
-
-            //debounce for rotation 
-            const updateFunc = (e) => {
-                const geometry = e.features[0]
-                if (!geometry) return;
-                const id = geometry.properties.gid
-                //update coordinates of the object 
-                console.log('id', id);
-                console.log('geometry-->', e.features[0]);
-
-                const geometryObj = mainData.layers.get(id)
-                geometryObj.updateGeometry(draw.getSelected())
-
-                editMode = false //SET the ability to select it again 
-                draw.deleteAll()
-
-                updateProp(geometry)
-
-            }
-            const debounceMove = _.debounce(updateFunc, 1)
-            const debounceRotate = _.debounce(updateFunc, 2000) //more time for rotate
-
-            map.on("draw.update", (e) => {
-                console.log('debouncedUpdateEvent');
-                const mode = draw.getMode()
-                const seconds = mode === "scaleRotateMode" ? debounceRotate(e) : debounceMove(e)
-                const selectedGeometry = draw.getSelected()
-                // console.log('geometry', selectedGeometry);
-                const id = selectedGeometry.features[0].properties.gid
-                // console.log('id', id);
-                const geometryObj = mainData.layers.get(id)
-                geometryObj.updateGeometry(selectedGeometry)
-            })
-
-            map.on("draw.selectionchange", (e) => {
-                console.log('draw.selectionchange',);
-            })
-
-            map.on("draw.modechange", (e) => {
-                console.log('draw.modechange', draw.getMode());
-                console.log('draw.modechange', draw.getSelected());
-
-                if (drawPolygonMode) {
-
-                    drawPolygonMode = false;
-
-                    const coordinates = draw.getSelected().features[0].geometry.coordinates
-                    console.log('coordinates', coordinates);
-
-                    const geometryObj = generateLayer({
-                        polyCoordinates: draw.getSelected().features[0].geometry.coordinates[0]
-                    })
-
-                    mainData.layers.set(geometryObj.layerId, {
-                        ...geometryObj
-                    })
-
-                    const polygon = draw.getSelected().features[0]
-                    const center = turf.centerOfMass(polygon)
-                    const [lng, lat] = turf.getCoords(center)
-                    const numberPosition = draw.getSelected().features[0].geometry.coordinates[0][0]
-
-                    polys.addItem({
-                        id: geometryObj.layerId,
-                        obj: geometryObj,
-                        geom: polygon,
-                        name: "",
-                        namePosition: [lng, lat],
-                        nameAngle: 0,
-
-                        number: "",
-                        numberPosition: numberPosition,
-                        numberAngle: 0,
-
-
-                        image: "",
-                        imageUrl: "img/logos/dummy_icon.png",
-                        imagePosition: [lng, lat],
-                        imageSize: 5,
-                        imageAngle: 0,
-
-                        fillColor: "#0080ff",
-                        opacity: 0.5,
-                    })
-                }
-            })
-
-
         })
 
         function updateArea() {
@@ -1205,16 +1189,6 @@
                     'fill-opacity': opacity
                 }
             });
-
-            // map.addLayer({
-            //     'id': geometryLayer + "_line",
-            //     'type': 'line',
-            //     'source': geometryLayer,
-            //     'paint': {
-            //         'line-color': 'white',
-            //         'line-width': 5,
-            //     }
-            // });
 
             function updateGeometry(geometry) {
                 //console.log('geometry',geometry);
