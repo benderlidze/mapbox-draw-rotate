@@ -291,6 +291,38 @@
             padding: 5px;
             cursor: pointer;
         }
+
+        .close-button {
+            position: absolute;
+            right: 0px;
+            top: 5px;
+            width: 32px;
+            height: 32px;
+            opacity: 0.3;
+            cursor: pointer;
+        }
+
+        .close-button:hover {
+            opacity: 1;
+        }
+
+        .close-button:before,
+        .close-button:after {
+            position: absolute;
+            left: 15px;
+            content: ' ';
+            height: 15px;
+            width: 2px;
+            background-color: #333;
+        }
+
+        .close-button:before {
+            transform: rotate(45deg);
+        }
+
+        .close-button:after {
+            transform: rotate(-45deg);
+        }
     </style>
 </head>
 
@@ -1536,6 +1568,15 @@
 
             const div = document.createElement("div")
             div.className = "load-data-form"
+
+            //add close X at the top right corner
+            const close = document.createElement("div")
+            close.className = "close-button"
+            close.addEventListener("click", () => {
+                div.remove()
+            })
+            div.appendChild(close)
+
 
             fetch("https://serg.one/drawingToolUpload/api.php", {
                 method: "POST",
