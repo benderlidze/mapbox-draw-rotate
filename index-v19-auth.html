@@ -427,6 +427,7 @@
         let selectedGeometryId = {};
         const assignedIcons = [];
 
+        let dragginType = null;
 
         const drawLlayers = ['gl-draw-polygon-fill-inactive.cold', 'gl-draw-polygon-fill-active.cold', 'gl-draw-overlay-polygon-fill-inactive.cold', 'gl-draw-overlay-polygon-fill-active.cold', 'gl-draw-polygon-stroke-inactive.cold', 'gl-draw-polygon-stroke-active.cold', 'gl-draw-polygon-midpoint.cold', 'gl-draw-line-inactive.cold', 'gl-draw-line-active.cold', 'gl-draw-polygon-and-line-vertex-stroke-inactive.cold', 'gl-draw-polygon-and-line-vertex-inactive.cold', 'gl-draw-polygon-and-line-vertex-scale-icon.cold', 'gl-draw-point-point-stroke-inactive.cold', 'gl-draw-point-inactive.cold', 'gl-draw-point-stroke-active.cold', 'gl-draw-point-active.cold', 'gl-draw-polygon-fill-static.cold', 'gl-draw-polygon-stroke-static.cold', 'gl-draw-line-static.cold', 'gl-draw-point-static.cold', 'gl-draw-line-rotate-point.cold', 'gl-draw-polygon-rotate-point-stroke.cold', 'gl-draw-polygon-rotate-point.cold', 'gl-draw-polygon-rotate-point-icon.cold', 'gl-draw-polygon-fill-inactive.hot', 'gl-draw-polygon-fill-active.hot', 'gl-draw-overlay-polygon-fill-inactive.hot', 'gl-draw-overlay-polygon-fill-active.hot', 'gl-draw-polygon-stroke-inactive.hot', 'gl-draw-polygon-stroke-active.hot', 'gl-draw-polygon-midpoint.hot', 'gl-draw-line-inactive.hot', 'gl-draw-line-active.hot', 'gl-draw-polygon-and-line-vertex-stroke-inactive.hot', 'gl-draw-polygon-and-line-vertex-inactive.hot', 'gl-draw-polygon-and-line-vertex-scale-icon.hot', 'gl-draw-point-point-stroke-inactive.hot', 'gl-draw-point-inactive.hot', 'gl-draw-point-stroke-active.hot', 'gl-draw-point-active.hot', 'gl-draw-polygon-fill-static.hot', 'gl-draw-polygon-stroke-static.hot', 'gl-draw-line-static.hot', 'gl-draw-point-static.hot', 'gl-draw-line-rotate-point.hot', 'gl-draw-polygon-rotate-point-stroke.hot', 'gl-draw-polygon-rotate-point.hot', 'gl-draw-polygon-rotate-point-icon.hot']
 
@@ -460,18 +461,6 @@
         const items = []
         const canvas = map.getCanvasContainer();
         let movableLayerID = 0
-
-        function onMove(e) {
-            const coords = e.lngLat;
-            canvas.style.cursor = 'grabbing';
-            polys.updateProp(movableLayerID, "numberPosition", [coords.lng, coords.lat])
-        }
-        function onUp(e) {
-            const coords = e.lngLat;
-            canvas.style.cursor = '';
-            map.off('mousemove', onMove);
-            map.off('touchmove', onMove);
-        }
 
         const polyItems = () => {
             const items = []
@@ -558,8 +547,7 @@
                         'data': data
                     });
                 } else {
-
-                    console.log('data============>>>>>', data);
+                    // console.log('data============>>>>>', data);
                     map.getSource(layerID).setData(data)
                 }
 
@@ -673,6 +661,7 @@
                     });
 
                     function onMove(e) {
+                        if (dragginType !== "logo") return;
                         const coords = e.lngLat;
                         canvas.style.cursor = 'grabbing';
                         polys.updateProp(movableLayerID, "imagePosition", [coords.lng, coords.lat])
@@ -683,6 +672,7 @@
                         canvas.style.cursor = '';
                         map.off('mousemove', onMove);
                         map.off('touchmove', onMove);
+                        dragginType = null
                     }
 
                     map.on('mouseenter', helperLayerID, () => {
@@ -694,9 +684,11 @@
                     map.on('mousedown', helperLayerID, (e) => {
                         movableLayerID = id
                         e.preventDefault();
+                        dragginType = "logo"
                         canvas.style.cursor = 'grab';
                         map.on('mousemove', onMove);
                         map.once('mouseup', onUp);
+                        console.log('dragginType', dragginType);
                     });
                     map.on('touchstart', helperLayerID, (e) => {
                         if (e.points.length !== 1) return;
@@ -766,7 +758,21 @@
                             "text-halo-color": "#fff"
                         }
                     });
-                    console.log('adding events',);
+
+                    function onMove(e) {
+                        if (dragginType !== "number") return;
+                        const coords = e.lngLat;
+                        canvas.style.cursor = 'grabbing';
+                        polys.updateProp(movableLayerID, "numberPosition", [coords.lng, coords.lat])
+                    }
+                    function onUp(e) {
+                        const coords = e.lngLat;
+                        canvas.style.cursor = '';
+                        map.off('mousemove', onMove);
+                        map.off('touchmove', onMove);
+                        dragginType = null
+                    }
+
                     map.on('mouseenter', layerID, () => {
                         canvas.style.cursor = 'move';
                     });
@@ -783,6 +789,7 @@
                         console.log('Mouse event');
                         map.on('mousemove', onMove);
                         map.once('mouseup', onUp);
+                        dragginType = "number"
                     });
 
                     map.on('touchstart', layerID, (e) => {
@@ -868,6 +875,7 @@
                     });
 
                     function onMoveName(e) {
+                        if (dragginType !== "name") return;
                         const coords = e.lngLat;
                         canvas.style.cursor = 'grabbing';
                         polys.updateProp(movableLayerID, "namePosition", [coords.lng, coords.lat])
@@ -877,6 +885,7 @@
                         canvas.style.cursor = '';
                         map.off('mousemove', onMoveName);
                         map.off('touchmove', onMoveName);
+                        dragginType = null
                     }
 
                     map.on('mouseenter', layerID, () => {
@@ -892,7 +901,8 @@
                         movableLayerID = id
                         e.preventDefault();
                         canvas.style.cursor = 'grab';
-                        console.log('Mouse event');
+                        console.log('MOVING NUMBER event');
+                        dragginType = "name"
                         map.on('mousemove', onMoveName);
                         map.once('mouseup', onUpName);
                     });
