@@ -512,20 +512,15 @@
                     .forEach(d => {
                         geometryLayer(d)
 
-                        if (dragginType !== null) {
-
+                        if (dragginType !== null) {//update only the dragged layer
                             if (dragginType === "number") numberLayer(d)
                             if (dragginType === "name") nameLayer(d)
                             if (dragginType === "logo") logoLayer(d)
-
                         } else {
                             numberLayer(d)
                             nameLayer(d)
                             logoLayer(d)
-
                         }
-
-
                     })
             }
 
