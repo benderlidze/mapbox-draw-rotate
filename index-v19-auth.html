@@ -511,11 +511,21 @@
                     .filter(d => d.id === layerId)
                     .forEach(d => {
                         geometryLayer(d)
-                        numberLayer(d)
-                        nameLayer(d)
-                        logoLayer(d)
-                        //update polygon fill color
-                        // map.setPaintProperty("geom_" + d.id, "fill-color", d.fillColor)
+
+                        if (dragginType !== null) {
+
+                            if (dragginType === "number") numberLayer(d)
+                            if (dragginType === "name") nameLayer(d)
+                            if (dragginType === "logo") logoLayer(d)
+
+                        } else {
+                            numberLayer(d)
+                            nameLayer(d)
+                            logoLayer(d)
+
+                        }
+
+
                     })
             }
 
@@ -1139,7 +1149,6 @@
 
         function updateProp(id, prop, value) {
             polys.updateProp(id, prop, value)
-            console.log('poly', polys.getItem(id));
         }
 
         function generateSlider(min, max, def, eventCallback) {
