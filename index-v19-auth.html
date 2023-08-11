@@ -1429,6 +1429,9 @@
             projectName.style.width = "300px"
             projectName.placeholder = "Project name"
 
+            const errorMessage = document.createElement("div")
+            errorMessage.className = "error-message"
+
             const saveButton = document.createElement("button")
             saveButton.disabled = !localStorage.token ? true : false
             saveButton.innerText = "Save"
@@ -1460,7 +1463,7 @@
                 div.remove()
             })
 
-
+            div.appendChild(errorMessage)
             div.appendChild(projectName)
             div.appendChild(saveButton)
 
