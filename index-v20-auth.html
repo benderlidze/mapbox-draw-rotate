@@ -326,7 +326,7 @@
 
         #legend {
             position: absolute;
-            bottom: 20px;
+            bottom: 30px;
             left: 20px;
             background-color: white;
             border-radius: 10px;
@@ -1190,9 +1190,13 @@
             div.className = "legend"
             //add div to dom
             if (polys && polys.getAll().length > 0) {
-                const items = polys.getAll().map(p => {
-                    return createItem(p)
-                })
+                const items = polys.getAll()
+                    .sort((a, b) => {
+                        return a.number - b.number
+                    })
+                    .map(p => {
+                        return createItem(p)
+                    })
                 div.replaceChildren(...items)
             }
             legend.replaceChildren(div)
@@ -1203,7 +1207,7 @@
 
                 const item = document.createElement("div")
                 item.className = "legend-item"
-                item.textContent = data.name
+                item.textContent = `${data.number} ${data.name}`
 
                 const circle = document.createElement("div")
                 circle.className = "legend-circle"
@@ -1213,11 +1217,6 @@
                 container.appendChild(item)
 
                 container.addEventListener("click", () => {
-
-                    // map && map.flyTo({
-                    //     center: turf.centerOfMass(data.geom).geometry.coordinates,
-                    //     zoom: 18
-                    // })
 
                     map.fitBounds(turf.bbox(data.geom), {
                         padding: 200
@@ -1709,6 +1708,13 @@
                     })
                     div.remove()
                     generateLegend()
+
+
+                    //fit geomemtry 
+                    const collection = turf.featureCollection(data.map(d => d.geom))
+                    map && map.fitBounds(turf.bbox(collection), {
+                        padding: 200
+                    })
                 })
                 return projectName
             }
