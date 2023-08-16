@@ -218,6 +218,13 @@
             justify-content: space-between;
         }
 
+        .flex-inline {
+            display: flex;
+            align-content: center;
+            align-items: center;
+            flex-direction: row;
+        }
+
         .register-form {
             position: absolute;
             top: 0;
@@ -696,6 +703,9 @@
                         'id': helperLayerID + "_line",
                         'type': 'line',
                         'source': helperLayerID,
+                        layout: {
+                            'visibility': 'none'
+                        },
                         'paint': {
                             'line-color': 'red',
                             'line-width': 2,
@@ -706,6 +716,7 @@
                         if (dragginType !== "logo") return;
                         const coords = e.lngLat;
                         canvas.style.cursor = 'grabbing';
+                        map.setLayoutProperty(helperLayerID + "_line", 'visibility', 'visible');
                         polys.updateProp(movableLayerID, "imagePosition", [coords.lng, coords.lat])
                     }
 
@@ -715,6 +726,7 @@
                         map.off('mousemove', onMove);
                         map.off('touchmove', onMove);
                         dragginType = null
+                        map.setLayoutProperty(helperLayerID + "_line", 'visibility', 'none');
                     }
 
                     map.on('mouseenter', helperLayerID, () => {
@@ -745,7 +757,7 @@
 
             const numberLayer = (item) => {
 
-                const { id, number, numberAngle, numberPosition } = item
+                const { id, number, numberAngle, numberPosition, showNumber } = item
                 const layerID = "number_" + id
 
                 const geo = {
@@ -780,6 +792,7 @@
                         'type': 'symbol',
                         'source': layerID,
                         'layout': {
+                            'visibility': showNumber,
                             'text-field': ['get', 'name'],
                             'text-font': [
                                 'Open Sans Semibold',
@@ -846,7 +859,7 @@
 
             const nameLayer = (item) => {
 
-                const { id, name, nameAngle } = item
+                const { id, name, nameAngle, showName } = item
                 const [lng, lat] = item.namePosition
                 const layerID = "text_" + id
 
@@ -890,11 +903,13 @@
                 }
 
                 if (!map.getLayer(layerID)) {
+                    console.log('showName', layerID, showName);
                     map.addLayer({
                         'id': layerID,
                         'type': 'symbol',
                         'source': layerID,
                         'layout': {
+                            'visibility': showName,
                             'text-field': ['get', 'name'],
                             'text-font': [
                                 'Open Sans Semibold',
@@ -1160,10 +1175,12 @@
                         name: "name",
                         namePosition: [lng, lat],
                         nameAngle: 0,
+                        showName: 'visible',
 
                         number: "number",
                         numberPosition: numberPosition,
                         numberAngle: 0,
+                        showNumber: 'visible',
 
                         imageUrl: "img/logos/dummy_icon.png",
                         imagePosition: [lng, lat],
@@ -1291,6 +1308,23 @@
                 updateProp(id, "name", value)
             })
 
+            const showNameDiv = document.createElement("div")
+            showNameDiv.className = 'flex-inline'
+            const showName = document.createElement("input")
+            showName.type = "checkbox"
+            showName.checked = props.showName === 'visible'
+            showName.addEventListener("change", e => {
+                const value = e.target.checked
+                const visibility = value ? 'visible' : 'none'
+                updateProp(id, "showName", visibility)
+                map.setLayoutProperty("text_" + id, 'visibility', visibility);
+            })
+            const showNameLabel = document.createElement("div")
+            showNameLabel.innerText = "Show name"
+            showNameDiv.appendChild(showName)
+            showNameDiv.appendChild(showNameLabel)
+
+
             const nameAngleSliderLabel = document.createElement("div")
             nameAngleSliderLabel.innerText = "Name angle"
 
@@ -1315,6 +1349,7 @@
             nameBlockFlexContainer.appendChild(nameAngleInput)
 
             nameBlock.appendChild(nameInput)
+            nameBlock.appendChild(showNameDiv)
             nameBlock.appendChild(nameBlockFlexContainer)
 
             //NUMBER
@@ -1335,6 +1370,23 @@
                 numberAngleInput.value = value
             })
 
+            const showNumberDiv = document.createElement("div")
+            showNumberDiv.className = 'flex-inline'
+            const showNumber = document.createElement("input")
+            showNumber.type = "checkbox"
+            showNumber.checked = props.showNumber === 'visible'
+            showNumber.addEventListener("change", e => {
+                const value = e.target.checked
+                const visibility = value ? 'visible' : 'none'
+                updateProp(id, "showNumber", visibility)
+                map.setLayoutProperty("number_" + id, 'visibility', visibility);
+            })
+            const showNumberLabel = document.createElement("div")
+            showNumberLabel.innerText = "Show number"
+            showNumberDiv.appendChild(showNumber)
+            showNumberDiv.appendChild(showNumberLabel)
+
+
             const numberAngleSliderLabel = document.createElement("div")
             numberAngleSliderLabel.innerText = "Number angle"
 
@@ -1354,6 +1406,7 @@
             numberBlockFlexContainer.appendChild(numberAngleInput)
 
             numberBlock.appendChild(numberInput)
+            numberBlock.appendChild(showNumberDiv)
             numberBlock.appendChild(numberBlockFlexContainer)
 
 
