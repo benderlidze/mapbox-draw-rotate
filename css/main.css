@@ -149,7 +149,6 @@ fieldset {
   justify-content: center;
 }
 
-
 input {
   /* border: 1px solid #004cff;
     background-color: #f1f1f1;
@@ -716,22 +715,22 @@ tr:nth-child(even) {
 
 #polygon-props-container {
   position: absolute;
-  bottom: 10px;
-  right: 10px;
+  /* bottom: 10px; */
+  /* right: 10px; */
+  top: 375px;
+  left: 20px;
   background-color: white;
   padding: 20px;
   z-index: 100;
   width: 350px;
-  
   display: flex;
   flex-direction: column;
-
 }
 
-.color-input{
-    width: 100%;
-    border-radius: 1px;
-    cursor: pointer;
-    height: 40px;
-    padding: 0px;
+.color-input {
+  width: 100%;
+  border-radius: 1px;
+  cursor: pointer;
+  height: 40px;
+  padding: 0px;
 }
