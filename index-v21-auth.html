@@ -276,19 +276,16 @@
 
 
         .load-data-form {
-            /* center screen position */
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            /* other styles */
             background-color: white;
             z-index: 10000;
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
-
             padding: 20px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
             border-radius: 5px;
@@ -334,7 +331,7 @@
         #legend {
             position: absolute;
             bottom: 30px;
-            left: 20px;
+            right: 10px;
             background-color: white;
             border-radius: 10px;
             font: 0.8em sans-serif;
@@ -366,10 +363,16 @@
             padding: 5px 15px;
         }
 
-        h5{
+        h5 {
             margin: 3px;
             padding: 0px;
 
+        }
+
+        #admin-tools {
+            display: flex;
+            flex-direction: row;
+            gap: 3px;
         }
     </style>
 </head>
@@ -393,6 +396,14 @@
         <span class="small-text">Search town or postcode</span>
         <div id="address">
             <input type="text" id="search">
+        </div>
+        <hr>
+        <div class="switch-item">
+            <div class="item-header">Satellite view</div>
+            <label class="switch">
+                <input type="checkbox" id="satelliteLayer">
+                <span class="slider round"></span>
+            </label>
         </div>
         <hr>
         <div class="item-header">
@@ -422,14 +433,7 @@
         <div>
             <div id="shop-list"></div>
         </div>
-        <hr>
-        <div class="switch-item">
-            <div class="item-header">Satellite view</div>
-            <label class="switch">
-                <input type="checkbox" id="satelliteLayer">
-                <span class="slider round"></span>
-            </label>
-        </div>
+
         <hr>
 
         <div class="item-header">
@@ -541,20 +545,45 @@
                 const item = getItem(id)
                 console.log('item', item);
 
-                map.removeLayer("geometry_" + id)
-                map.removeSource("geometry_" + id)
+                const layers = [
+                    "geometry_" + id,
+                    "geometry_" + id + "_line",
+                    "number_" + id,
+                    "text_" + id,
+                    "logo_" + id,
+                    "helper_" + id,
+                    "helper_" + id + "_line",
+                ]
+                const sources = [
+                    "geometry_" + id,
+                    "number_" + id,
+                    "text_" + id,
+                    "logo_" + id,
+                    "helper_" + id,
+                ]
 
-                map.removeLayer("number_" + id)
-                map.removeSource("number_" + id)
+                layers.forEach(layer => {
+                    if (map.getLayer(layer)) map.removeLayer(layer)
+                })
+                sources.forEach(source => {
+                    if (map.getSource(source)) map.removeSource(source)
+                })
 
-                map.removeLayer("text_" + id)
-                map.removeSource("text_" + id)
+                // map.removeLayer("geometry_" + id)
+                // map.removeLayer("geometry_" + id + "_line")
+                // map.removeSource("geometry_" + id)
 
-                map.removeLayer("logo_" + id)
-                map.removeSource("logo_" + id)
-                map.removeLayer("helper_" + id)
-                map.removeLayer("helper_" + id + "_line")
-                map.removeSource("helper_" + id)
+                // map.removeLayer("number_" + id)
+                // map.removeSource("number_" + id)
+
+                // map.removeLayer("text_" + id)
+                // map.removeSource("text_" + id)
+
+                // map.removeLayer("logo_" + id)
+                // map.removeSource("logo_" + id)
+                // map.removeLayer("helper_" + id)
+                // map.removeLayer("helper_" + id + "_line")
+                // map.removeSource("helper_" + id)
 
                 items.splice(items.indexOf(item), 1)
                 draw.deleteAll()
@@ -565,7 +594,6 @@
                     .filter(d => d.id === layerId)
                     .forEach(d => {
                         geometryLayer(d)
-
                         if (dragginType !== null) {//update only the dragged layer
                             if (dragginType === "number") numberLayer(d)
                             if (dragginType === "name") nameLayer(d)
@@ -632,7 +660,19 @@
                         'layout': {},
                         'paint': {
                             'fill-color': ['get', 'fillColor'],
-                            'fill-opacity': 0.8
+                            'fill-opacity': 0.8,
+                            'fill-outline-color': 'white',
+                            'fill-antialias': true,
+                        }
+                    });
+                    map.addLayer({
+                        'id': layerID + "_line",
+                        'type': 'line',
+                        'source': layerID,
+                        'layout': {},
+                        'paint': {
+                            'line-color': 'white',
+                            'line-width': 4,
                         }
                     });
                     map.on('click', layerID, clickEvent)
@@ -640,6 +680,7 @@
 
                 const deleteLayer = () => {
                     map.removeLayer(layerID)
+                    map.removeLayer(layerID + "_line")
                     map.removeSource(layerID)
                     map.off("click", layerID, clickEvent)
                 }
@@ -990,13 +1031,20 @@
                 return items
             }
 
+            const deleteProject = () => {
+                getAll().forEach(d => {
+                    deleteItem(d.id)
+                })
+            }
+
             return {
                 getItem,
                 addItem,
                 updateProp,
                 getAll,
                 deleteItem,
-                updateLayer
+                updateLayer,
+                deleteProject
             }
         }
         const polys = polyItems();
@@ -1291,7 +1339,7 @@
 
             const div = document.createElement("div")
             const colorText = document.createElement("div")
-            colorText.innerText = "Set color"
+            colorText.innerText = "Set colour of this polygon"
             const colorInput = document.createElement("input")
             colorInput.className = "color-input"
             colorInput.type = "color"
@@ -1332,7 +1380,7 @@
             })
             const showNameLabel = document.createElement("div")
             showNameLabel.innerText = "Show name"
-            
+
             showNameDiv.appendChild(showName)
             showNameDiv.appendChild(showNameLabel)
 
@@ -1347,6 +1395,7 @@
 
             const nameAngleInput = document.createElement("input")
             nameAngleInput.type = "number"
+            nameAngleInput.style.display = "none"
             nameAngleInput.min = 0
             nameAngleInput.value = 0
             nameAngleInput.max = 360
@@ -1404,6 +1453,7 @@
             numberAngleSliderLabel.innerText = "Rotate text"
 
             const numberAngleInput = document.createElement("input")
+            numberAngleInput.style.display = "none"
             numberAngleInput.type = "number"
             numberAngleInput.min = 0
             numberAngleInput.value = 0
@@ -1473,6 +1523,7 @@
                 updateProp(id, "imageSize", value)
             })
             const imageSizeInput = document.createElement("input")
+            imageSizeInput.style.display = "none"
             imageSizeInput.type = "number"
             imageSizeInput.min = 0
             imageSizeInput.value = 0
@@ -1509,7 +1560,7 @@
 
             //HIDDEN!!!!!!!!!!!!!!!
             const imageAngleInput = document.createElement("input")
-            imageAngleInput.style.visibility = "hidden"
+            imageAngleInput.style.display = "none"
             imageAngleInput.type = "number"
             imageAngleInput.min = 0
             imageAngleInput.value = 0
@@ -1742,6 +1793,7 @@
 
             const div = document.createElement("div")
             div.className = "load-data-form"
+            div.innerHTML = "<center><h3>Your Maps</h3></center>"
 
             //add close X at the top right corner
             const close = document.createElement("div")
@@ -1786,8 +1838,11 @@
                     generateLegend()
 
 
-                    //fit geomemtry 
-                    const collection = turf.featureCollection(data.map(d => d.geom))
+                    //fit geometry 
+                    const collection = turf.featureCollection(data.map(d => {
+                        return d.geom.type === "FeatureCollection" ? d.geom.features[0] : d.geom
+                    }))
+
                     map && map.fitBounds(turf.bbox(collection), {
                         padding: 200
                     })
@@ -1805,6 +1860,7 @@
             userEmail.className = "user-email"
 
             const loggOutButton = document.createElement("button")
+            loggOutButton.className = "buttons"
             loggOutButton.innerText = "Log out"
             loggOutButton.addEventListener("click", () => {
                 localStorage.setItem("token", "")
@@ -1814,12 +1870,14 @@
             })
 
             const saveProjectButton = document.createElement("button")
+            saveProjectButton.className = "buttons"
             saveProjectButton.innerText = "Save"
             saveProjectButton.addEventListener("click", () => {
                 generateSaveProjectForm()
             })
 
             const loadProjectButton = document.createElement("button")
+            loadProjectButton.className = "buttons"
             loadProjectButton.innerText = "Load"
             loadProjectButton.addEventListener("click", () => {
                 loadDataForm()
@@ -1827,10 +1885,10 @@
 
 
             userInfo.appendChild(userEmail)
-            userInfo.appendChild(loggOutButton)
 
             adminTools.appendChild(saveProjectButton)
             adminTools.appendChild(loadProjectButton)
+            adminTools.appendChild(loggOutButton)
 
             userDiv.appendChild(userInfo)
         }
