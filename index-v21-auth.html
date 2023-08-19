@@ -18,7 +18,7 @@
     <link href="css/toggle.css" rel="stylesheet">
     <link href="css/main.css" rel="stylesheet">
     <script src="https://unpkg.com/mapbox-gl-draw-snap-mode"></script>
-    <script src="https://js.upload.io/upload-js/v2"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
     <style>
         .sectors {
@@ -417,6 +417,7 @@
             <!-- <button id="rotate" class="buttons">Rotate</button> -->
             <button id="delete" class="buttons">Delete</button>
             <button id="reset" class="buttons">Reset</button>
+            <button id="screenshot" class="buttons">Screenshot</button>
             <!-- <button id="addInfo" class="buttons">Add info</button> -->
         </div>
         <hr>
@@ -440,7 +441,6 @@
         <div class="item-header">
             <span class="" id="resetSectors">Reset</span>
             <span id="help" class="buttons help-button">Tutorial</span>
-            <span id="screenshot" class="buttons help-button">Screenshot</span>
         </div>
 
 
@@ -452,15 +452,13 @@
     </div>
 
     <div id="polygon-props-container"></div>
-    <div id="map"></div>
-    <div id="legend"></div>
-
+    <div id="map-container">
+        <div id="map"></div>
+        <div id="legend"></div>
+    </div>
     <script>
-
-        const upload = Upload({
-            apiKey: `free`
-        });
-
+        const polygonInfoContainer = document.getElementById('polygon-info-container');
+        const filters = document.getElementById('filters');
         const legend = document.getElementById('legend');
         const userDiv = document.getElementById('user-data');
         const adminTools = document.getElementById('admin-tools');
@@ -1076,15 +1074,29 @@
 
         //make a screenshot on click
         screenshot.addEventListener("click", () => {
-            map.getCanvas().toBlob(function (blob) {
-                // Create a download link for the image
-                var link = document.createElement('a');
-                link.download = 'screenshot.png';
-                link.href = URL.createObjectURL(blob);
-                link.click();
-                // Show the screenshot button again
-                screenshotBtn.style.display = 'block';
-            });
+            // map.getCanvas().toBlob(function (blob) {
+            //     // Create a download link for the image
+            //     var link = document.createElement('a');
+            //     link.download = 'screenshot.png';
+            //     link.href = URL.createObjectURL(blob);
+            //     link.click();
+            // });
+
+            filters.style.visibility = "hidden";
+            polygonPropsDiv.style.visibility = "hidden";
+            polygonInfoContainer.style.visibility = "hidden";
+
+            html2canvas(document.body, { useCORS: true }).then(canvas => {
+                var pseudolink = document.createElement('a');
+                pseudolink.download = 'myMapScreenshot.png';
+                pseudolink.href = canvas.toDataURL()
+                pseudolink.click();
+
+                filters.style.visibility = "visible";
+                polygonPropsDiv.style.visibility = "visible";
+                polygonInfoContainer.style.visibility = "visible";
+            })
+
         })
 
         satelliteLayer && satelliteLayer.addEventListener("input", function () {
