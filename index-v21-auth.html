@@ -416,6 +416,7 @@
             <button id="draw" class="buttons">Draw</button>
             <!-- <button id="rotate" class="buttons">Rotate</button> -->
             <button id="delete" class="buttons">Delete</button>
+            <button id="reset" class="buttons">Reset</button>
             <!-- <button id="addInfo" class="buttons">Add info</button> -->
         </div>
         <hr>
@@ -470,7 +471,7 @@
         // const rotateButton = document.getElementById("rotate");
         const polygonInfo = document.getElementById("polygon-info");
         const sectorsDiv = document.getElementById("sectors");
-        const resetButton = document.getElementById("resetSectors");
+        const resetButton = document.getElementById("reset");
         const helpButton = document.getElementById("help");
         // const addInfoButton = document.getElementById("addInfo");
         const screenshot = document.getElementById("screenshot");
@@ -569,22 +570,6 @@
                     if (map.getSource(source)) map.removeSource(source)
                 })
 
-                // map.removeLayer("geometry_" + id)
-                // map.removeLayer("geometry_" + id + "_line")
-                // map.removeSource("geometry_" + id)
-
-                // map.removeLayer("number_" + id)
-                // map.removeSource("number_" + id)
-
-                // map.removeLayer("text_" + id)
-                // map.removeSource("text_" + id)
-
-                // map.removeLayer("logo_" + id)
-                // map.removeSource("logo_" + id)
-                // map.removeLayer("helper_" + id)
-                // map.removeLayer("helper_" + id + "_line")
-                // map.removeSource("helper_" + id)
-
                 items.splice(items.indexOf(item), 1)
                 draw.deleteAll()
             }
@@ -627,6 +612,7 @@
                     id: id,
                     properties: { ...geom.properties, id, fillColor }
                 }
+                console.log('data', data);
 
                 if (!map.getSource(layerID)) {
                     map.addSource(layerID, {
@@ -637,7 +623,6 @@
                     // console.log('data============>>>>>', data);
                     map.getSource(layerID).setData(data)
                 }
-
 
                 const clickEvent = (e) => {
                     draw.add(polys.getItem(id).geom)//get updated geometry
@@ -1032,9 +1017,11 @@
             }
 
             const deleteProject = () => {
-                getAll().forEach(d => {
-                    deleteItem(d.id)
+                const ids = getAll().map(d => d.id)
+                ids.forEach(id => {
+                    deleteItem(id)
                 })
+                legend.innerHTML = ""
             }
 
             return {
@@ -1123,6 +1110,10 @@
             }
 
         })
+        resetButton.addEventListener("click", () => {
+            console.log('resetButton');
+            polys.deleteProject()
+        })
 
         drawButton && drawButton.addEventListener("click", () => {
             draw.changeMode('draw_polygon');
@@ -1193,8 +1184,9 @@
 
                 const item = polys.getItem(id)
                 if (item) {
-                    console.log(id, "geom", selectedGeometry);
-                    updateProp(id, "geom", selectedGeometry)
+                    console.log(id, "geom====>", selectedGeometry);
+                    const updatedGeometry = selectedGeometry.type === "FeatureCollection" ? selectedGeometry.features[0] : selectedGeometry
+                    updateProp(id, "geom", updatedGeometry)
                 } else {
                     console.error("no item found")
                 }
@@ -1250,13 +1242,14 @@
 
         })
 
-
         function updateProp(id, prop, value) {
             polys.updateProp(id, prop, value)
             generateLegend()
         }
 
         function generateLegend() {
+
+            console.log('generateLegend');
 
             const div = document.createElement("div")
             div.className = "legend"
@@ -1271,7 +1264,12 @@
                     })
                 div.replaceChildren(...items)
             }
-            legend.replaceChildren(div)
+
+            while (legend.firstChild) {
+                legend.removeChild(legend.firstChild);
+            }
+
+            legend.appendChild(div)
 
             function createItem(data) {
                 const container = document.createElement("div")
@@ -1814,20 +1812,23 @@
                 .then(res => {
                     console.log('res', res);
                     document.body.appendChild(div)
-
                     if (res && res.data) {
                         res.data.map(project => {
                             div.appendChild(loadProject(project))
                         })
                     }
-
                 })
 
             function loadProject(project) {
+
                 const projectName = document.createElement("div")
                 projectName.innerText = project.name
                 projectName.className = "load-data-form-item"
                 projectName.addEventListener("click", () => {
+
+                    //remove prev project
+                    polys.deleteProject()
+
                     const data = JSON.parse(project.data)
                     console.log('data', data);
                     data.forEach(item => {
@@ -1836,7 +1837,6 @@
                     })
                     div.remove()
                     generateLegend()
-
 
                     //fit geometry 
                     const collection = turf.featureCollection(data.map(d => {
