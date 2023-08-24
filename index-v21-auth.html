@@ -336,6 +336,7 @@
             border-radius: 10px;
             font: 0.8em sans-serif;
             z-index: 1000;
+            padding: 10px;
         }
 
         .legend-item {
@@ -344,6 +345,15 @@
             align-items: center;
             justify-content: flex-start;
             padding: 5px 0px;
+
+            /* display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-gap: 5px; */
+        }
+
+        /* first div */
+        .legend-item> :first-child {
+            min-width: 60px;
         }
 
         .legend-circle {
@@ -373,6 +383,16 @@
             display: flex;
             flex-direction: row;
             gap: 3px;
+        }
+
+        .legend-table {
+            border: 0px solid red;
+        }
+
+        .legend-table th,
+        .legend-table td {
+            padding: 5px;
+            text-align: left;
         }
     </style>
 </head>
@@ -439,7 +459,6 @@
         <hr>
 
         <div class="item-header">
-            <span class="" id="resetSectors">Reset</span>
             <span id="help" class="buttons help-button">Tutorial</span>
         </div>
 
@@ -1265,6 +1284,12 @@
 
             const div = document.createElement("div")
             div.className = "legend"
+
+            const title = document.createElement(`table`)
+            title.className = "legend-table"
+            title.innerHTML = `<tr><th></th><th>Size</th><th>Name</th></tr>`
+
+
             //add div to dom
             if (polys && polys.getAll().length > 0) {
                 const items = polys.getAll()
@@ -1272,34 +1297,27 @@
                         return a.number - b.number
                     })
                     .map(p => {
-                        return createItem(p)
+
+                        return title.appendChild(createItem(p))
                     })
-                div.replaceChildren(...items)
+                // title.replaceChildren(...items)
             }
 
             while (legend.firstChild) {
                 legend.removeChild(legend.firstChild);
             }
 
+            legend.appendChild(title)
             legend.appendChild(div)
 
             function createItem(data) {
-                const container = document.createElement("div")
-                container.className = "legend-item-container"
+                const container = document.createElement("tr")
 
-                const item = document.createElement("div")
-                item.className = "legend-item"
-                item.textContent = `${data.number} ${data.name}`
-
-                const circle = document.createElement("div")
-                circle.className = "legend-circle"
-                circle.style.backgroundColor = data.fillColor
-
-                container.appendChild(circle)
-                container.appendChild(item)
+                // item.className = "legend-item"
+                // item.innerHTML = `<div>${data.number}</div><div>${data.name}</div>`
+                container.innerHTML = `<td><div class="legend-circle" style="background-color:${data.fillColor}"></div></td><td>${data.number}</td><td>${data.name}</td>`
 
                 container.addEventListener("click", () => {
-
                     map.fitBounds(turf.bbox(data.geom), {
                         padding: 200
                     })
