@@ -394,6 +394,15 @@
             padding: 5px;
             text-align: left;
         }
+
+        .project-item {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -498,6 +507,7 @@
         const mainData = {
             layers: new Map(),
             currentLayer: null,
+            currentProject: null
         }
 
         let selectedGeometryId = {};
@@ -1657,13 +1667,37 @@
 
         function generateSaveProjectForm() {
 
+            if (mainData.currentProject && mainData.currentProject.polygon_id) {
+
+                fetch("https://serg.one/drawingToolUpload/api.php", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        polygon_id: mainData.currentProject.polygon_id,
+                        uid: localStorage.token,
+                        data: JSON.stringify(polys.getAll()),
+                        action: "save-project"
+                    })
+                }).then(res => res.json())
+                    .then(res => {
+                        console.log('res', res);
+                        if (res.success === false) {
+                            errorMessage.textContent = res.message
+                        } else {
+                            //success
+                            //save token to localstorage
+                        }
+                    })
+                return;
+            }
+
+
             const div = document.createElement("div")
             div.className = "save-project-form"
 
             const projectName = document.createElement("input")
             projectName.type = "text"
             projectName.style.width = "300px"
-            projectName.placeholder = "Project name"
+            projectName.placeholder = "New project name"
 
             const errorMessage = document.createElement("div")
             errorMessage.className = "error-message"
@@ -1693,6 +1727,43 @@
                     })
             })
 
+            // const projectsList = document.createElement("div")
+            // projectsList.className = "projects-list"
+
+            // fetchProjectsList()
+            // function fetchProjectsList() {
+            //     fetch("https://serg.one/drawingToolUpload/api.php", {
+            //         method: "POST",
+            //         body: JSON.stringify({
+            //             uid: localStorage.token,
+            //             action: "load"
+            //         })
+            //     }).then(res => res.json())
+            //         .then(res => {
+            //             if (res && res.data) {
+
+            //                 const title = document.createElement("div")
+            //                 title.className = "projects-list-title"
+            //                 title.innerText = "Saved projects"
+            //                 projectsList.appendChild(title)
+
+            //                 res.data.map(project => {
+
+            //                     const div = document.createElement("div")
+            //                     div.className = "project-item"
+            //                     div.innerText = project.name
+            //                     const saveButton = document.createElement("button")
+            //                     saveButton.innerText = "Save"
+            //                     saveButton.addEventListener("click", () => {
+            //                         console.log('project.id', project.id);
+            //                     })
+            //                     div.appendChild(saveButton)
+            //                     projectsList.appendChild(div)
+            //                 })
+            //             }
+            //         })
+            // }
+
             const cancelButton = document.createElement("button")
             cancelButton.innerText = "Cancel"
             cancelButton.addEventListener("click", () => {
@@ -1702,6 +1773,8 @@
             div.appendChild(errorMessage)
             div.appendChild(projectName)
             div.appendChild(saveButton)
+            div.appendChild(cancelButton)
+            // div.appendChild(projectsList)
 
             document.body.appendChild(div)
         }
@@ -1890,6 +1963,8 @@
                 })
 
             function loadProject(project) {
+                console.log('project', project);
+                mainData.currentProject = project
 
                 const projectName = document.createElement("div")
                 projectName.innerText = project.name
