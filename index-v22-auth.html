@@ -1842,7 +1842,6 @@
                             localStorage.setItem("email", res.email)
                             //remove register form
                             div.remove()
-                            generateUserInfo()
                         }
                     })
             })
@@ -1938,6 +1937,7 @@
                 localStorage.setItem("email", "")
                 userInfo.remove()
                 generateRegisterForm()
+                location.reload()
             })
 
             const saveProjectButton = document.createElement("button")
@@ -1957,10 +1957,10 @@
 
             userInfo.appendChild(userEmail)
 
+
             adminTools.appendChild(saveProjectButton)
             adminTools.appendChild(loadProjectButton)
             adminTools.appendChild(loggOutButton)
-
             userDiv.appendChild(userInfo)
         }
 
