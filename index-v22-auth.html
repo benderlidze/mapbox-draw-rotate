@@ -1723,6 +1723,10 @@
                             //success
                             //save token to localstorage
                             div.remove()
+                            mainData.currentProject = {
+                                polygon_id: res.polygon_id,
+                                name: projectName.value
+                            }
                         }
                     })
             })
