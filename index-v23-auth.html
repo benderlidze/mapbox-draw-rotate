@@ -1,0 +1,2060 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Filters</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.11.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.11.0/mapbox-gl.js"></script>
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+    <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.2/mapbox-gl-draw.js'></script>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.2/mapbox-gl-draw.css"
+        type="text/css">
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+
+    <!-- <script src="js/rotate_mod.js"></script> -->
+
+    <link href="css/toggle.css" rel="stylesheet">
+    <link href="css/main.css" rel="stylesheet">
+    <script src="https://unpkg.com/mapbox-gl-draw-snap-mode"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+    <style>
+        .sectors {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr !important;
+            /* grid-template-rows: 1fr 1fr 1fr; */
+            /* grid-gap: 3px; */
+        }
+
+        .sectors :nth-child(n + 4) {
+            grid-column: span 3;
+        }
+
+        .mapboxgl-ctrl-top-right {
+            display: none;
+        }
+
+        .sectors-override {
+            grid-template-columns: 1fr;
+        }
+
+        .lot-button {
+            display: flex;
+            align-content: center;
+            align-items: center;
+            flex-direction: row;
+            justify-content: flex-start;
+        }
+
+        #lots {
+            top: 80px;
+            left: 20px;
+            position: absolute;
+            z-index: 10;
+            background-color: white;
+            border-radius: 10px;
+            display: flex;
+            padding: 10px;
+            flex-direction: column;
+        }
+
+        .lot-button {
+            cursor: pointer;
+            padding: 5px;
+            margin: 2px;
+            border-radius: 5px;
+            font-size: 12px;
+            border: 1px solid gray;
+        }
+
+        .lot-button:hover {
+            background-color: rgb(228, 228, 228);
+        }
+
+        #polygon-info-container {
+            top: 20px;
+            right: 20px;
+            position: absolute;
+            z-index: 10;
+            background-color: white;
+            border-radius: 10px;
+            display: flex;
+            padding: 10px;
+            border: 1px solid #004cff;
+            flex-direction: column;
+            font: 0.8em sans-serif;
+        }
+
+        .draw {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .draw>button {
+            margin-right: 3px;
+        }
+
+        .help-button {
+            background-color: #f29830;
+            border: none;
+            margin: 0px 3px;
+            color: white;
+        }
+
+        .modal-content {
+            width: 60%;
+        }
+
+        .modal {
+            padding-top: 0;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .marker {
+
+            min-width: 100px;
+            height: 30px;
+            background: #ccc;
+
+
+            border-radius: 5px;
+            padding: 5px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .marker:before {
+            content: "";
+            position: absolute;
+            right: 100%;
+            top: 16px;
+            width: 0;
+            height: 0;
+            border-top: 5px solid transparent;
+            border-right: 36px solid #ccc;
+            border-bottom: 5px solid transparent;
+        }
+
+
+        .wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .close-marker:before {
+            content: '✕';
+        }
+
+        .close-marker {
+            position: absolute;
+            top: 0;
+            right: 0;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+
+
+        .accordion {
+            background-color: #eee;
+            color: #444;
+            cursor: pointer;
+            padding: 7px;
+            /* width: 100%; */
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 15px;
+            transition: 0.4s;
+        }
+
+        .active,
+        .accordion:hover {
+            background-color: #ccc;
+        }
+
+        .accordion:after {
+            content: '\002B';
+            color: #777;
+            font-weight: bold;
+            float: right;
+            margin-left: 5px;
+        }
+
+        .active:after {
+            content: "\2212";
+        }
+
+        .accordion-panel {
+
+            background-color: white;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+        }
+
+        .block-wrapper {
+            border: 1px solid #ccc;
+            padding: 5px;
+            margin: 5px 0px;
+        }
+
+        input[type="range"] {
+            box-shadow: none;
+        }
+
+        input[type="file"] {
+            box-shadow: none;
+            border: none;
+        }
+
+        .flex-container {
+            display: flex;
+            align-content: center;
+            align-items: center;
+            flex-direction: row;
+            justify-content: space-between;
+        }
+
+        .flex-inline {
+            display: flex;
+            align-content: center;
+            align-items: center;
+            flex-direction: row;
+        }
+
+        .register-form {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .error-message {
+            color: red;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 10px 0px;
+        }
+
+        .user-email {
+            font-weight: bold;
+            padding-right: 10px;
+        }
+
+        .save-project-form {
+
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+
+        .load-data-form {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+        }
+
+        .load-data-form-item {
+            padding: 5px;
+            cursor: pointer;
+        }
+
+        .close-button {
+            position: absolute;
+            right: 0px;
+            top: 5px;
+            width: 32px;
+            height: 32px;
+            opacity: 0.3;
+            cursor: pointer;
+        }
+
+        .close-button:hover {
+            opacity: 1;
+        }
+
+        .close-button:before,
+        .close-button:after {
+            position: absolute;
+            left: 15px;
+            content: ' ';
+            height: 15px;
+            width: 2px;
+            background-color: #333;
+        }
+
+        .close-button:before {
+            transform: rotate(45deg);
+        }
+
+        .close-button:after {
+            transform: rotate(-45deg);
+        }
+
+        #legend {
+            position: absolute;
+            bottom: 30px;
+            right: 10px;
+            background-color: white;
+            border-radius: 10px;
+            font: 0.8em sans-serif;
+            z-index: 1000;
+            padding: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 5px 0px;
+
+            /* display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-gap: 5px; */
+        }
+
+        /* first div */
+        .legend-item> :first-child {
+            min-width: 60px;
+        }
+
+        .legend-circle {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .legend-item-container {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            cursor: pointer;
+            user-select: none;
+            padding: 5px 15px;
+        }
+
+        h5 {
+            margin: 3px;
+            padding: 0px;
+
+        }
+
+        #admin-tools {
+            display: flex;
+            flex-direction: row;
+            gap: 3px;
+        }
+
+        .legend-table {
+            border: 0px solid red;
+        }
+
+        .legend-table th,
+        .legend-table td {
+            padding: 5px;
+            text-align: left;
+        }
+
+        .project-item {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="modal-info" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" id="close-modal-info">&times;</span>
+                <h2 id="modal-info-header"></h2>
+            </div>
+            <div class="modal-body" id="modal-window-body">
+            </div>
+        </div>
+    </div>
+
+    <div id="filters">
+
+        <div id="user-data"></div>
+        <span class="small-text">Search town or postcode</span>
+        <div id="address">
+            <input type="text" id="search">
+        </div>
+        <hr>
+        <div class="switch-item">
+            <div class="item-header">Satellite view</div>
+            <label class="switch">
+                <input type="checkbox" id="satelliteLayer">
+                <span class="slider round"></span>
+            </label>
+        </div>
+        <hr>
+        <div class="item-header">
+            Tools
+        </div>
+        <!-- <input type="file" id="fileInput" accept="image/png, image/jpeg, image/gif , image/webp">
+        <div id="imagePreview"></div> -->
+
+        <div class="draw">
+            <button id="draw" class="buttons">Draw</button>
+            <!-- <button id="rotate" class="buttons">Rotate</button> -->
+            <button id="delete" class="buttons">Delete</button>
+            <button id="reset" class="buttons">Reset</button>
+            <button id="screenshot" class="buttons">Screenshot</button>
+            <div>
+                <button id="undo" class="buttons">Undo</button>
+            </div>
+            <!-- <button id="addInfo" class="buttons">Add info</button> -->
+        </div>
+        <hr>
+        <div class="item-header">
+            Admin
+        </div>
+        <div id="admin-tools"></div>
+
+        <div class="item-header" style="display: none;">
+            Objects
+        </div>
+        <div id="sectors" class="">
+
+        </div>
+        <div>
+            <div id="shop-list"></div>
+        </div>
+
+        <hr>
+
+        <div class="item-header">
+            <span id="help" class="buttons help-button">Tutorial</span>
+        </div>
+
+
+    </div>
+
+    <div id="polygon-info-container">
+        <div id="polygon-info"></div>
+        *Double click to measure an object
+    </div>
+
+    <div id="polygon-props-container"></div>
+    <div id="map-container">
+        <div id="map"></div>
+        <div id="legend"></div>
+    </div>
+    <script>
+        const polygonInfoContainer = document.getElementById('polygon-info-container');
+        const filters = document.getElementById('filters');
+        const legend = document.getElementById('legend');
+        const userDiv = document.getElementById('user-data');
+        const adminTools = document.getElementById('admin-tools');
+        const polygonPropsDiv = document.getElementById('polygon-props-container');
+        const satelliteLayer = document.getElementById('satelliteLayer');
+        const drawButton = document.getElementById("draw");
+        const deleteButton = document.getElementById("delete");
+        // const rotateButton = document.getElementById("rotate");
+        const polygonInfo = document.getElementById("polygon-info");
+        const sectorsDiv = document.getElementById("sectors");
+        const resetButton = document.getElementById("reset");
+        const helpButton = document.getElementById("help");
+        // const addInfoButton = document.getElementById("addInfo");
+        const screenshot = document.getElementById("screenshot");
+        const undo = document.getElementById("undo");
+        const fileInput = document.getElementById('fileInput');
+        const imagePreview = document.getElementById('imagePreview');
+
+        const glDrawLayers = ['gl-draw-polygon-fill-inactive.cold', 'gl-draw-polygon-fill-active.cold', 'gl-draw-polygon-midpoint.cold', 'gl-draw-polygon-stroke-inactive.cold', 'gl-draw-polygon-stroke-active.cold', 'gl-draw-line-inactive.cold', 'gl-draw-line-active.cold', 'gl-draw-polygon-and-line-vertex-stroke-inactive.cold', 'gl-draw-polygon-and-line-vertex-inactive.cold', 'gl-draw-point-point-stroke-inactive.cold', 'gl-draw-point-inactive.cold', 'gl-draw-point-stroke-active.cold', 'gl-draw-point-active.cold', 'gl-draw-polygon-fill-static.cold', 'gl-draw-polygon-stroke-static.cold', 'gl-draw-line-static.cold', 'gl-draw-point-static.cold', 'gl-draw-polygon-fill-inactive.hot', 'gl-draw-polygon-fill-active.hot', 'gl-draw-polygon-midpoint.hot', 'gl-draw-polygon-stroke-inactive.hot', 'gl-draw-polygon-stroke-active.hot', 'gl-draw-line-inactive.hot', 'gl-draw-line-active.hot', 'gl-draw-polygon-and-line-vertex-stroke-inactive.hot', 'gl-draw-polygon-and-line-vertex-inactive.hot', 'gl-draw-point-point-stroke-inactive.hot', 'gl-draw-point-inactive.hot', 'gl-draw-point-stroke-active.hot', 'gl-draw-point-active.hot', 'gl-draw-polygon-fill-static.hot', 'gl-draw-polygon-stroke-static.hot', 'gl-draw-line-static.hot', 'gl-draw-point-static.hot']
+
+        const mainData = {
+            layers: new Map(),
+            currentLayer: null,
+            currentProject: null
+        }
+
+        let selectedGeometryId = {};
+        const assignedIcons = [];
+
+        let dragginType = null;
+
+        const drawLlayers = ['gl-draw-polygon-fill-inactive.cold', 'gl-draw-polygon-fill-active.cold', 'gl-draw-overlay-polygon-fill-inactive.cold', 'gl-draw-overlay-polygon-fill-active.cold', 'gl-draw-polygon-stroke-inactive.cold', 'gl-draw-polygon-stroke-active.cold', 'gl-draw-polygon-midpoint.cold', 'gl-draw-line-inactive.cold', 'gl-draw-line-active.cold', 'gl-draw-polygon-and-line-vertex-stroke-inactive.cold', 'gl-draw-polygon-and-line-vertex-inactive.cold', 'gl-draw-polygon-and-line-vertex-scale-icon.cold', 'gl-draw-point-point-stroke-inactive.cold', 'gl-draw-point-inactive.cold', 'gl-draw-point-stroke-active.cold', 'gl-draw-point-active.cold', 'gl-draw-polygon-fill-static.cold', 'gl-draw-polygon-stroke-static.cold', 'gl-draw-line-static.cold', 'gl-draw-point-static.cold', 'gl-draw-line-rotate-point.cold', 'gl-draw-polygon-rotate-point-stroke.cold', 'gl-draw-polygon-rotate-point.cold', 'gl-draw-polygon-rotate-point-icon.cold', 'gl-draw-polygon-fill-inactive.hot', 'gl-draw-polygon-fill-active.hot', 'gl-draw-overlay-polygon-fill-inactive.hot', 'gl-draw-overlay-polygon-fill-active.hot', 'gl-draw-polygon-stroke-inactive.hot', 'gl-draw-polygon-stroke-active.hot', 'gl-draw-polygon-midpoint.hot', 'gl-draw-line-inactive.hot', 'gl-draw-line-active.hot', 'gl-draw-polygon-and-line-vertex-stroke-inactive.hot', 'gl-draw-polygon-and-line-vertex-inactive.hot', 'gl-draw-polygon-and-line-vertex-scale-icon.hot', 'gl-draw-point-point-stroke-inactive.hot', 'gl-draw-point-inactive.hot', 'gl-draw-point-stroke-active.hot', 'gl-draw-point-active.hot', 'gl-draw-polygon-fill-static.hot', 'gl-draw-polygon-stroke-static.hot', 'gl-draw-line-static.hot', 'gl-draw-point-static.hot', 'gl-draw-line-rotate-point.hot', 'gl-draw-polygon-rotate-point-stroke.hot', 'gl-draw-polygon-rotate-point.hot', 'gl-draw-polygon-rotate-point-icon.hot']
+
+        const lots = []
+
+        let prevCategoryName = "";
+        const cats = lots.reduce((r, a) => {
+            r[a.categoryName] = [...r[a.categoryName] || [], a];
+            return r;
+        }, {})
+
+        const {
+            SnapPolygonMode,
+            SnapPointMode,
+            SnapLineMode,
+            SnapModeDrawStyles,
+            SnapDirectSelect,
+        } = mapboxGlDrawSnapMode;
+
+        mapboxgl.accessToken = 'pk.eyJ1Ijoic2VyZ2JlciIsImEiOiJja3dwOWgzeGQwYWdyMm9xb2pkMDFvYmNuIn0.H9AJ_NLmDNYMed6dvu_Q0A';
+        const map = new mapboxgl.Map({
+            container: 'map', // container ID
+            // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
+            style: 'mapbox://styles/mapbox/light-v9', // style URL
+            center: { lng: -2.134943230363888, lat: 52.98713803343554 },
+            zoom: 18.332148527852908, // starting zoom
+            preserveDrawingBuffer: true,
+        });
+        map.doubleClickZoom.disable();
+
+        const items = []
+        const canvas = map.getCanvasContainer();
+        let movableLayerID = 0
+        const history = []
+
+        const polyItems = () => {
+            const items = []
+
+            const getItem = (polyId) => {
+                return items.find(d => d.id === polyId)
+            }
+
+            const addItem = (poly) => {
+                items.push(poly)
+                geometryLayer(poly)
+            }
+
+            const updateProp = (layerId, prop, value) => {
+                const item = getItem(layerId)
+                if (item) {
+                    item[prop] = value
+                    updateLayer(layerId)
+                }
+            }
+
+            const deleteItem = (id, skipHistory = false) => {
+                //TODO rebuild and add delete mouse events too
+                const item = getItem(id)
+                console.log('item', item);
+
+                const layers = [
+                    "geometry_" + id,
+                    "geometry_" + id + "_line",
+                    "number_" + id,
+                    "text_" + id,
+                    "logo_" + id,
+                    "helper_" + id,
+                    "helper_" + id + "_line",
+                ]
+                const sources = [
+                    "geometry_" + id,
+                    "number_" + id,
+                    "text_" + id,
+                    "logo_" + id,
+                    "helper_" + id,
+                ]
+
+                layers.forEach(layer => {
+                    if (map.getLayer(layer)) map.removeLayer(layer)
+                })
+                sources.forEach(source => {
+                    if (map.getSource(source)) map.removeSource(source)
+                })
+
+                items.splice(items.indexOf(item), 1)
+                draw.deleteAll()
+                //skipHistory - skip history update for project delete
+                saveToHistory(skipHistory)
+            }
+
+            const updateLayer = (layerId, skipHistory = false) => {
+                items
+                    .filter(d => d.id === layerId)
+                    .forEach(d => {
+                        geometryLayer(d)
+                        if (dragginType !== null) {//update only the dragged layer
+                            if (dragginType === "number") numberLayer(d)
+                            if (dragginType === "name") nameLayer(d)
+                            if (dragginType === "logo") logoLayer(d)
+                        } else {
+                            numberLayer(d)
+                            nameLayer(d)
+                            logoLayer(d)
+                        }
+                    })
+                //skipHistory - skip history update for project delete
+                saveToHistory(skipHistory)
+            }
+
+            const debounceUpdate = _.debounce(function (layerID, imageUrl, rotatedCoords) {
+                //debounce image update since it's too slow
+                map.getSource(layerID).updateImage({
+                    url: imageUrl,
+                    coordinates: rotatedCoords
+                })
+            }, 100)
+
+            const geometryLayer = (item) => {
+
+                const { id, geom, fillColor } = item
+                const layerID = "geometry_" + id
+
+                //after move fix!!!!!!!!!
+                const geometry = geom.type === "FeatureCollection" ? geom.features[0] : geom
+
+                const data = {
+                    ...geometry,
+                    id: id,
+                    properties: { ...geom.properties, id, fillColor }
+                }
+
+                if (!map.getSource(layerID)) {
+                    map.addSource(layerID, {
+                        'type': 'geojson',
+                        'data': data
+                    });
+                } else {
+                    // console.log('data============>>>>>', data);
+                    map.getSource(layerID).setData(data)
+                }
+
+                const clickEvent = (e) => {
+                    draw.add(polys.getItem(id).geom)//get updated geometry
+                    editMode = true
+                    selectedGeometryId = {
+                        id,
+                        geom
+                    }
+                    if (geom) {
+                        generatePropWindow(geom)
+                    }
+                }
+
+                if (!map.getLayer(layerID)) {
+                    console.log('!!!!!!!!!!!!!!!!!!!!!!!!');
+                    map.addLayer({
+                        'id': layerID,
+                        'type': 'fill',
+                        'source': layerID,
+                        'layout': {},
+                        'paint': {
+                            'fill-color': ['get', 'fillColor'],
+                            'fill-opacity': 0.8,
+                            'fill-outline-color': 'white',
+                            'fill-antialias': true,
+                        }
+                    });
+                    map.addLayer({
+                        'id': layerID + "_line",
+                        'type': 'line',
+                        'source': layerID,
+                        'layout': {},
+                        'paint': {
+                            'line-color': 'white',
+                            'line-width': 4,
+                        }
+                    });
+                    map.on('click', layerID, clickEvent)
+                }
+
+                const deleteLayer = () => {
+                    map.removeLayer(layerID)
+                    map.removeLayer(layerID + "_line")
+                    map.removeSource(layerID)
+                    map.off("click", layerID, clickEvent)
+                }
+
+                // return {
+                //     deleteLayer
+                // }
+            }
+
+            const logoLayer = (item) => {
+
+                const { id, number, imageUrl, imagePosition, geom, imageSize, imageAngle } = item
+                const layerID = "logo_" + id
+                const center = imagePosition ? turf.point(imagePosition) : turf.centerOfMass(geom)//init with center of mass
+                //draw sqaure
+                const radius = 0.001 * imageSize || 0.001;
+                const options = { steps: 25, units: 'kilometers' };
+                const circle = turf.circle(center, radius, options);
+
+                const bbox = turf.bbox(circle)
+                const bboxPolygon = turf.bboxPolygon(bbox)
+                const rotationAngle = imageAngle || 0;   // in degrees
+                const rotatedPolygon = turf.transformRotate(bboxPolygon, +rotationAngle);
+                const rotatedCoords = (turf.getCoords(rotatedPolygon))[0].slice(0, 4).reverse()
+
+                if (imageUrl === "") return;
+
+                if (!map.getSource(layerID)) {
+                    map.addSource(layerID, {
+                        'type': 'image',
+                        'url': imageUrl,
+                        'coordinates': rotatedCoords
+                    })
+                } else {
+                    debounceUpdate(layerID, imageUrl, rotatedCoords)
+                }
+
+                if (!map.getLayer(layerID)) {
+                    map.addLayer({
+                        'id': layerID,
+                        'type': 'raster',
+                        'source': layerID,
+                    },
+                        "number_" + id,
+                        "text_" + id
+                    );
+                }
+
+                //helper to move the image 
+                const helperLayerID = "helper_" + id
+                if (!map.getSource(helperLayerID)) {
+                    map.addSource(helperLayerID, {
+                        'type': 'geojson',
+                        'data': bboxPolygon
+                    })
+                } else {
+                    map.getSource(helperLayerID).setData(rotatedPolygon)
+                }
+                if (!map.getLayer(helperLayerID)) {
+                    //fill type
+                    map.addLayer({
+                        'id': helperLayerID,
+                        'type': 'fill',
+                        'source': helperLayerID,
+                        'paint': {
+                            'fill-color': 'red',
+                            'fill-opacity': 0,
+                            'fill-outline-color': 'white',
+                        }
+                        //}, layerID);
+                    });
+                    map.addLayer({
+                        'id': helperLayerID + "_line",
+                        'type': 'line',
+                        'source': helperLayerID,
+                        layout: {
+                            'visibility': 'none'
+                        },
+                        'paint': {
+                            'line-color': 'red',
+                            'line-width': 2,
+                        }
+                    });
+
+                    function onMove(e) {
+                        if (dragginType !== "logo") return;
+                        const coords = e.lngLat;
+                        canvas.style.cursor = 'grabbing';
+                        map.setLayoutProperty(helperLayerID + "_line", 'visibility', 'visible');
+                        polys.updateProp(movableLayerID, "imagePosition", [coords.lng, coords.lat])
+                    }
+
+                    function onUp(e) {
+                        const coords = e.lngLat;
+                        canvas.style.cursor = '';
+                        map.off('mousemove', onMove);
+                        map.off('touchmove', onMove);
+                        dragginType = null
+                        map.setLayoutProperty(helperLayerID + "_line", 'visibility', 'none');
+                    }
+
+                    map.on('mouseenter', helperLayerID, () => {
+                        canvas.style.cursor = 'move';
+                    });
+                    map.on('mouseleave', helperLayerID, () => {
+                        canvas.style.cursor = '';
+                    });
+                    map.on('mousedown', helperLayerID, (e) => {
+                        movableLayerID = id
+                        e.preventDefault();
+                        dragginType = "logo"
+                        canvas.style.cursor = 'grab';
+                        map.on('mousemove', onMove);
+                        map.once('mouseup', onUp);
+                        console.log('dragginType', dragginType);
+                    });
+                    map.on('touchstart', helperLayerID, (e) => {
+                        if (e.points.length !== 1) return;
+                        e.preventDefault();
+                        map.on('touchmove', onMove);
+                        map.once('touchend', onUp);
+                    });
+
+                }
+
+            }
+
+            const numberLayer = (item) => {
+
+                const { id, number, numberAngle, numberPosition, showNumber } = item
+                const layerID = "number_" + id
+
+                const geo = {
+                    'type': 'FeatureCollection',
+                    'features': [
+                        {
+                            'type': 'Feature',
+                            'geometry': {
+                                'type': 'Point',
+                                'coordinates': numberPosition
+                            },
+                            'properties': {
+                                'name': number,
+                                'numberAngle': numberAngle
+                            }
+                        }
+                    ]
+                }
+
+                if (!map.getSource(layerID)) {
+                    map.addSource(layerID, {
+                        'type': 'geojson',
+                        'data': geo
+                    })
+                } else {
+                    map.getSource(layerID).setData(geo)
+                }
+
+                if (!map.getLayer(layerID)) {
+                    map.addLayer({
+                        'id': layerID,
+                        'type': 'symbol',
+                        'source': layerID,
+                        'layout': {
+                            'visibility': showNumber,
+                            'text-field': ['get', 'name'],
+                            'text-font': [
+                                'Open Sans Semibold',
+                                'Arial Unicode MS Bold'
+                            ],
+                            'text-size': ['interpolate', ['linear'], ['zoom'], 0, 0, 14, 0, 16, 8, 19, 20,],
+                            'text-rotate': ['get', 'numberAngle'],
+                            'text-allow-overlap': true,
+                            'text-ignore-placement': true,
+                            'text-anchor': 'center',
+                            'text-justify': 'center',
+                            'text-offset': [0, 0],
+                            "text-rotation-alignment": "map"
+                        },
+                        'paint': {
+                            "text-halo-width": 2,
+                            "text-halo-blur": 2,
+                            "text-halo-color": "#fff"
+                        }
+                    });
+
+                    function onMove(e) {
+                        if (dragginType !== "number") return;
+                        const coords = e.lngLat;
+                        canvas.style.cursor = 'grabbing';
+                        polys.updateProp(movableLayerID, "numberPosition", [coords.lng, coords.lat])
+                    }
+                    function onUp(e) {
+                        const coords = e.lngLat;
+                        canvas.style.cursor = '';
+                        map.off('mousemove', onMove);
+                        map.off('touchmove', onMove);
+                        dragginType = null
+                    }
+
+                    map.on('mouseenter', layerID, () => {
+                        canvas.style.cursor = 'move';
+                    });
+
+                    map.on('mouseleave', layerID, () => {
+                        canvas.style.cursor = '';
+                    });
+
+                    map.on('mousedown', layerID, (e) => {
+                        // Prevent the default map drag behavior.
+                        movableLayerID = id
+                        e.preventDefault();
+                        canvas.style.cursor = 'grab';
+                        console.log('Mouse event');
+                        map.on('mousemove', onMove);
+                        map.once('mouseup', onUp);
+                        dragginType = "number"
+                    });
+
+                    map.on('touchstart', layerID, (e) => {
+                        if (e.points.length !== 1) return;
+                        // Prevent the default map drag behavior.
+                        e.preventDefault();
+                        map.on('touchmove', onMove);
+                        map.once('touchend', onUp);
+                    });
+                }
+            }
+
+            const nameLayer = (item) => {
+
+                const { id, name, nameAngle, showName } = item
+                const [lng, lat] = item.namePosition
+                const layerID = "text_" + id
+
+                if (!map.getSource(layerID)) {
+                    map.addSource(layerID, {
+                        'type': 'geojson',
+                        'data': {
+                            'type': 'FeatureCollection',
+                            'features': [
+                                {
+                                    'type': 'Feature',
+                                    'geometry': {
+                                        'type': 'Point',
+                                        'coordinates': [lng, lat]
+                                    },
+                                    'properties': {
+                                        'name': name,
+                                        'nameAngle': nameAngle
+                                    }
+                                }
+                            ]
+                        }
+                    })
+                } else {
+                    map.getSource(layerID).setData({
+                        'type': 'FeatureCollection',
+                        'features': [
+                            {
+                                'type': 'Feature',
+                                'geometry': {
+                                    'type': 'Point',
+                                    'coordinates': [lng, lat]
+                                },
+                                'properties': {
+                                    'name': name,
+                                    'nameAngle': nameAngle
+                                }
+                            }
+                        ]
+                    })
+                }
+
+                if (!map.getLayer(layerID)) {
+                    console.log('showName', layerID, showName);
+                    map.addLayer({
+                        'id': layerID,
+                        'type': 'symbol',
+                        'source': layerID,
+                        'layout': {
+                            'visibility': showName,
+                            'text-field': ['get', 'name'],
+                            'text-font': [
+                                'Open Sans Semibold',
+                                'Arial Unicode MS Bold'
+                            ],
+                            'text-size': ['interpolate', ['linear'], ['zoom'], 0, 0, 14, 0, 16, 8, 19, 20,],
+                            'text-rotate': ['get', 'nameAngle'],
+                            'text-allow-overlap': true,
+                            'text-ignore-placement': true,
+                            'text-anchor': 'center',
+                            'text-justify': 'center',
+                            'text-offset': [0, 0],
+                            "text-rotation-alignment": "map",
+                        },
+                        'paint': {
+                            "text-halo-width": 2,
+                            "text-halo-blur": 2,
+                            "text-halo-color": "#fff"
+                        }
+                    });
+
+                    function onMoveName(e) {
+                        if (dragginType !== "name") return;
+                        const coords = e.lngLat;
+                        canvas.style.cursor = 'grabbing';
+                        polys.updateProp(movableLayerID, "namePosition", [coords.lng, coords.lat])
+                    }
+                    function onUpName(e) {
+                        const coords = e.lngLat;
+                        canvas.style.cursor = '';
+                        map.off('mousemove', onMoveName);
+                        map.off('touchmove', onMoveName);
+                        dragginType = null
+                    }
+
+                    map.on('mouseenter', layerID, () => {
+                        canvas.style.cursor = 'move';
+                    });
+
+                    map.on('mouseleave', layerID, () => {
+                        canvas.style.cursor = '';
+                    });
+
+                    map.on('mousedown', layerID, (e) => {
+                        // Prevent the default map drag behavior.
+                        movableLayerID = id
+                        e.preventDefault();
+                        canvas.style.cursor = 'grab';
+                        console.log('MOVING NUMBER event');
+                        dragginType = "name"
+                        map.on('mousemove', onMoveName);
+                        map.once('mouseup', onUpName);
+                    });
+
+                    map.on('touchstart', layerID, (e) => {
+                        if (e.points.length !== 1) return;
+                        // Prevent the default map drag behavior.
+                        e.preventDefault();
+                        map.on('touchmove', onMoveName);
+                        map.once('touchend', onUpName);
+                    });
+                }
+            }
+
+            const getAll = () => {
+                return items
+            }
+
+            const deleteProject = () => {
+                const ids = getAll().map(d => d.id)
+                ids.forEach(id => {
+                    deleteItem(id, true)
+                })
+                legend.innerHTML = ""
+            }
+
+            const saveToHistory = (skip) => {
+                if (skip) return;
+                history.push(JSON.parse(JSON.stringify(items)))
+                
+            }
+
+            return {
+                getItem,
+                addItem,
+                updateProp,
+                getAll,
+                deleteItem,
+                updateLayer,
+                deleteProject,
+                saveToHistory
+            }
+        }
+        const polys = polyItems();
+
+        const draw = new MapboxDraw({
+            userProperties: true,
+        });
+
+        map.addControl(draw);
+
+        undo.addEventListener("click", () => {
+
+            if (history && history.length > 0) { //>1 initial state after load 
+
+                const data = history[history.length - 2]
+                history.pop()
+
+                //remove the project
+                polys.deleteProject()
+
+                data && data.forEach(item => {
+                    polys.addItem(item)
+                    polys.updateLayer(item.id, true)
+                })
+                generateLegend()
+            }
+        })
+
+        //make a screenshot on click
+        screenshot.addEventListener("click", () => {
+            filters.style.visibility = "hidden";
+            polygonPropsDiv.style.visibility = "hidden";
+            polygonInfoContainer.style.visibility = "hidden";
+
+            html2canvas(document.body, { useCORS: true }).then(canvas => {
+                var pseudolink = document.createElement('a');
+                pseudolink.download = 'myMapScreenshot.png';
+                pseudolink.href = canvas.toDataURL()
+                pseudolink.click();
+
+                filters.style.visibility = "visible";
+                polygonPropsDiv.style.visibility = "visible";
+                polygonInfoContainer.style.visibility = "visible";
+            })
+
+        })
+
+        satelliteLayer && satelliteLayer.addEventListener("input", function () {
+            console.log('111', 111);
+            if (satelliteLayer.checked) {
+                map.setLayoutProperty('satellite', 'visibility', 'visible');
+            } else {
+                map.setLayoutProperty('satellite', 'visibility', 'none');
+            }
+        });
+
+        deleteButton.addEventListener("click", () => {
+            console.log('delete', selectedGeometryId);
+
+            if (selectedGeometryId.id) {
+                const polyObj = polys.getItem(selectedGeometryId.id)
+                console.log('polyObj', polyObj);
+
+                // polyObj.deleteLayer()
+                // draw.deleteAll()
+
+                polys.deleteItem(selectedGeometryId.id)
+            }
+
+        })
+        resetButton.addEventListener("click", () => {
+            console.log('resetButton');
+            polys.deleteProject()
+        })
+
+        drawButton && drawButton.addEventListener("click", () => {
+            draw.changeMode('draw_polygon');
+        })
+
+        map.on('draw.selectionchange', updateArea);
+
+        map.on('load', () => {
+
+            map.addSource("hillshade", {
+                type: "raster",
+                tiles: [
+                    "https://khms1.googleapis.com/kh?v=946&hl=en&x={x}&y={y}&z={z}",
+                    "https://khms0.googleapis.com/kh?v=946&hl=en&x={x}&y={y}&z={z}",
+                ]
+            });
+
+            map.addLayer({
+                id: "satellite",
+                type: "raster",
+                source: "hillshade",
+                layout: {
+                    visibility: 'none'
+                }
+            }, ...drawLlayers);
+
+            map.loadImage("img/rotate.png", function (error, image) {
+                if (error) throw error;
+                map.addImage('rotate', image);
+            });
+
+            let editMode = false;
+            let drawPolygonMode = false
+
+            const popup = new mapboxgl.Popup({
+                closeButton: false,
+                closeOnClick: false,
+                offset: [0, -20]
+            });
+
+            map.on('mousemove', (e) => {
+                if (editMode) return;
+                const features = map.queryRenderedFeatures(e.point);
+                if (features.length > 0 && features[0].properties && features[0].properties.info) {
+                    const info = features[0].properties.info
+                    popup.setLngLat(e.lngLat).setHTML(info).addTo(map);
+                } else {
+                    popup.remove()
+                }
+            })
+
+            map.on('click', (e) => {
+
+                console.log('draw.getMode()', draw.getMode());
+                if (draw.getMode() === draw.modes.DRAW_POLYGON) {
+                    drawPolygonMode = true
+                    return
+                }
+
+            })
+
+            map.on("draw.update", (e) => {
+                console.log('DRAW UPDATE!!!',);
+                const mode = draw.getMode()
+                const selectedGeometry = draw.getSelected()
+                console.log('geometry', selectedGeometry);
+                const id = selectedGeometry.features[0].id
+
+                const item = polys.getItem(id)
+                if (item) {
+                    console.log(id, "geom====>", selectedGeometry);
+                    const updatedGeometry = selectedGeometry.type === "FeatureCollection" ? selectedGeometry.features[0] : selectedGeometry
+                    updateProp(id, "geom", updatedGeometry)
+                } else {
+                    console.error("no item found")
+                }
+            })
+
+            map.on("draw.selectionchange", (e) => {
+                console.log('draw.selectionchange',);
+            })
+
+            map.on("draw.modechange", (e) => {
+                console.log('draw.modechange', draw.getMode());
+                console.log('draw.modechange', draw.getSelected());
+
+                if (drawPolygonMode) {
+
+                    drawPolygonMode = false;
+
+                    const coordinates = draw.getSelected().features[0].geometry.coordinates
+                    console.log('draw.getSelected()', draw.getSelected());
+
+                    const layerId = draw.getSelected().features[0].id
+                    const polygon = draw.getSelected().features[0]
+                    const center = turf.centerOfMass(polygon)
+                    const [lng, lat] = turf.getCoords(center)
+                    const numberPosition = draw.getSelected().features[0].geometry.coordinates[0][0]
+
+                    polys.addItem({
+                        id: layerId,
+                        //obj: geometryObj,
+                        geom: polygon,
+
+                        name: "Tesco or Unit 1",
+                        namePosition: [lng, lat],
+                        nameAngle: 0,
+                        showName: 'visible',
+
+                        number: "Size or unit #",
+                        numberPosition: numberPosition,
+                        numberAngle: 0,
+                        showNumber: 'visible',
+
+                        // imageUrl: "img/logos/dummy_icon.png",
+                        imageUrl: "",
+                        imagePosition: [lng, lat],
+                        imageSize: 5,
+                        imageAngle: 0,
+
+                        fillColor: "#0080ff",
+                        opacity: 0.5,
+                    })
+                }
+            })
+
+        })
+
+        function updateProp(id, prop, value) {
+            polys.updateProp(id, prop, value)
+            generateLegend()
+        }
+
+        function generateLegend() {
+
+            console.log('generateLegend');
+
+            const div = document.createElement("div")
+            div.className = "legend"
+
+            const title = document.createElement(`table`)
+            title.className = "legend-table"
+            title.innerHTML = `<tr><th></th><th>Size</th><th>Name</th></tr>`
+
+
+            //add div to dom
+            if (polys && polys.getAll().length > 0) {
+                const items = polys.getAll()
+                    .sort((a, b) => {
+                        return a.number - b.number
+                    })
+                    .map(p => {
+
+                        return title.appendChild(createItem(p))
+                    })
+                // title.replaceChildren(...items)
+            }
+
+            while (legend.firstChild) {
+                legend.removeChild(legend.firstChild);
+            }
+
+            legend.appendChild(title)
+            legend.appendChild(div)
+
+            function createItem(data) {
+                const container = document.createElement("tr")
+
+                // item.className = "legend-item"
+                // item.innerHTML = `<div>${data.number}</div><div>${data.name}</div>`
+                container.innerHTML = `<td><div class="legend-circle" style="background-color:${data.fillColor}"></div></td><td>${data.number}</td><td>${data.name}</td>`
+
+                container.addEventListener("click", () => {
+                    map.fitBounds(turf.bbox(data.geom), {
+                        padding: 200
+                    })
+                })
+
+                return container
+            }
+        }
+
+        function generateSlider(min, max, def, eventCallback) {
+            const slider = document.createElement("input")
+            slider.type = "range"
+            slider.min = min
+            slider.max = max
+            slider.value = def
+            slider.addEventListener("input", e => {
+                const value = e.target.value
+                if (typeof eventCallback === 'function') {
+                    eventCallback(value)
+                }
+            })
+            return slider
+        }
+
+        function generatePropWindow(geometryObject) {
+
+            console.log('geometryObject', geometryObject);
+            let geometry = geometryObject
+            if (geometryObject.type === "FeatureCollection") {
+                geometry = geometry.features[0]
+            }
+
+            const { id } = geometry
+            console.log('id', id);
+
+            const props = polys.getItem(id)
+
+            let polygon = geometry
+            if (geometry.type && geometry.type === "FeatureCollection") {
+                polygon = geometry.features[0]
+            }
+
+            const color = props.fillColor || "#0080ff"
+            const name = props.name || ""
+            const number = props.number || ""
+            const image = "https://nikolsky.com.ua/wp-content/uploads/2021/02/house.png" || ""
+
+            const div = document.createElement("div")
+            const colorText = document.createElement("div")
+            colorText.innerText = "Set colour of this polygon"
+            const colorInput = document.createElement("input")
+            colorInput.className = "color-input"
+            colorInput.type = "color"
+            colorInput.value = color
+            colorInput.addEventListener("input", e => {
+                const value = e.target.value
+                updateProp(id, "fillColor", value)
+            })
+
+            //NAME
+
+            const nameTitle = document.createElement("h5")
+            nameTitle.innerText = "Name this unit"
+
+            const nameBlockFlexContainer = document.createElement("div")
+            nameBlockFlexContainer.className = "flex-container"
+
+            const nameBlock = document.createElement("div")
+            nameBlock.className = "block-wrapper"
+            const nameInput = document.createElement("input")
+            nameInput.placeholder = "Tesco or Unit 1"
+            nameInput.value = name
+            nameInput.addEventListener("input", e => {
+                const value = e.target.value
+                updateProp(id, "name", value)
+            })
+
+            const showNameDiv = document.createElement("div")
+            showNameDiv.className = 'flex-inline'
+            const showName = document.createElement("input")
+            showName.type = "checkbox"
+            showName.checked = props.showName === 'visible'
+            showName.addEventListener("change", e => {
+                const value = e.target.checked
+                const visibility = value ? 'visible' : 'none'
+                updateProp(id, "showName", visibility)
+                map.setLayoutProperty("text_" + id, 'visibility', visibility);
+            })
+            const showNameLabel = document.createElement("div")
+            showNameLabel.innerText = "Show name"
+
+            showNameDiv.appendChild(showName)
+            showNameDiv.appendChild(showNameLabel)
+
+
+            const nameAngleSliderLabel = document.createElement("div")
+            nameAngleSliderLabel.innerText = "Rotate text"
+
+            const nameAngleSlider = generateSlider(0, 360, 0, (value) => {
+                updateProp(id, "nameAngle", +value)
+                nameAngleInput.value = value
+            })
+
+            const nameAngleInput = document.createElement("input")
+            nameAngleInput.type = "number"
+            nameAngleInput.style.display = "none"
+            nameAngleInput.min = 0
+            nameAngleInput.value = 0
+            nameAngleInput.max = 360
+            nameAngleInput.addEventListener("input", e => {
+                const value = e.target.value
+                nameAngleSlider.value = value
+                updateProp(id, "nameAngle", +value)
+            })
+
+            nameBlockFlexContainer.appendChild(nameAngleSliderLabel)
+            nameBlockFlexContainer.appendChild(nameAngleSlider)
+            nameBlockFlexContainer.appendChild(nameAngleInput)
+
+            nameBlock.appendChild(nameTitle)
+            nameBlock.appendChild(nameInput)
+            nameBlock.appendChild(showNameDiv)
+            nameBlock.appendChild(nameBlockFlexContainer)
+
+            //NUMBER
+            const numberBlockFlexContainer = document.createElement("div")
+            numberBlockFlexContainer.className = "flex-container"
+
+            const numberBlock = document.createElement("div")
+            numberBlock.className = "block-wrapper"
+            const numberInput = document.createElement("input")
+            numberInput.placeholder = "Size or unit #"
+            numberInput.value = number
+            numberInput.addEventListener("input", e => {
+                const value = e.target.value
+                updateProp(id, "number", value)
+            })
+            const numberAngleSlider = generateSlider(0, 360, 0, (value) => {
+                updateProp(id, "numberAngle", +value)
+                numberAngleInput.value = value
+            })
+
+            const showNumberDiv = document.createElement("div")
+            showNumberDiv.className = 'flex-inline'
+            const showNumber = document.createElement("input")
+            showNumber.type = "checkbox"
+            showNumber.checked = props.showNumber === 'visible'
+            showNumber.addEventListener("change", e => {
+                const value = e.target.checked
+                const visibility = value ? 'visible' : 'none'
+                updateProp(id, "showNumber", visibility)
+                map.setLayoutProperty("number_" + id, 'visibility', visibility);
+            })
+            const showNumberLabel = document.createElement("div")
+            showNumberLabel.innerText = "Show number"
+            showNumberDiv.appendChild(showNumber)
+            showNumberDiv.appendChild(showNumberLabel)
+
+
+            const numberAngleSliderLabel = document.createElement("div")
+            numberAngleSliderLabel.innerText = "Rotate text"
+
+            const numberAngleInput = document.createElement("input")
+            numberAngleInput.style.display = "none"
+            numberAngleInput.type = "number"
+            numberAngleInput.min = 0
+            numberAngleInput.value = 0
+            numberAngleInput.max = 360
+            numberAngleInput.addEventListener("input", e => {
+                const value = e.target.value
+                numberAngleSlider.value = value
+                updateProp(id, "numberAngle", +value)
+            })
+
+            numberBlockFlexContainer.appendChild(numberAngleSliderLabel)
+            numberBlockFlexContainer.appendChild(numberAngleSlider)
+            numberBlockFlexContainer.appendChild(numberAngleInput)
+
+            const numberTitle = document.createElement("h5")
+            numberTitle.innerText = "Add unit info"
+
+            numberBlock.appendChild(numberTitle)
+            numberBlock.appendChild(numberInput)
+            numberBlock.appendChild(showNumberDiv)
+            numberBlock.appendChild(numberBlockFlexContainer)
+
+
+            const fileBlock = document.createElement("div")
+            fileBlock.className = "block-wrapper"
+            const fileInput = document.createElement("input")
+            fileInput.type = "file"
+            fileInput.accept = "image/png, image/jpeg, image/gif , image/webp"
+
+            //onfileselected event 
+            fileInput.addEventListener('change', async (event) => {
+                const file = event.target.files[0]
+                if (file) {
+                    const formData = new FormData();
+                    formData.append('image', file);
+
+                    try {
+                        const response = await fetch('https://serg.one/drawingToolUpload/upload.php', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const result = await response.json();
+                        console.log(result);
+
+                        result && result.fullURL && updateProp(id, "imageUrl", result.fullURL)
+
+                    } catch (error) {
+                        console.error(error);
+                    }
+                }
+            });
+
+            const flexContainer = document.createElement("div")
+            flexContainer.className = "flex-container"
+
+            const imageSizeSliderLabel = document.createElement("div")
+            imageSizeSliderLabel.innerText = "incr/decr size"
+
+            const imageSizeSlider = document.createElement("input")
+            imageSizeSlider.type = "range"
+            imageSizeSlider.min = 0
+            imageSizeSlider.max = 50
+            imageSizeSlider.value = 5
+            imageSizeSlider.addEventListener("input", e => {
+                const value = e.target.value
+                imageSizeInput.value = value
+                updateProp(id, "imageSize", value)
+            })
+            const imageSizeInput = document.createElement("input")
+            imageSizeInput.style.display = "none"
+            imageSizeInput.type = "number"
+            imageSizeInput.min = 0
+            imageSizeInput.value = 0
+            imageSizeInput.max = 50
+            imageSizeInput.addEventListener("input", e => {
+                const value = e.target.value
+                imageSizeSlider.value = value
+                updateProp(id, "imageSize", value)
+
+            })
+
+            flexContainer.appendChild(imageSizeSliderLabel)
+            flexContainer.appendChild(imageSizeSlider)
+            flexContainer.appendChild(imageSizeInput)
+
+
+            //IMAGE ANGLE 
+            const imageAngleSliderContainer = document.createElement("div")
+            imageAngleSliderContainer.className = "flex-container"
+
+            const imageAngleSliderLabel = document.createElement("div")
+            imageAngleSliderLabel.innerText = "Rotate image"
+
+            const imageAngleSlider = document.createElement("input")
+            imageAngleSlider.type = "range"
+            imageAngleSlider.min = 0
+            imageAngleSlider.max = 360
+            imageAngleSlider.value = 0
+            imageAngleSlider.addEventListener("input", e => {
+                const value = e.target.value
+                imageAngleInput.value = value
+                updateProp(id, "imageAngle", value)
+            })
+
+            //HIDDEN!!!!!!!!!!!!!!!
+            const imageAngleInput = document.createElement("input")
+            imageAngleInput.style.display = "none"
+            imageAngleInput.type = "number"
+            imageAngleInput.min = 0
+            imageAngleInput.value = 0
+            imageAngleInput.max = 360
+            imageAngleInput.addEventListener("input", e => {
+                const value = e.target.value
+                imageAngleSlider.value = value
+                updateProp(id, "imageAngle", value)
+            })
+
+            imageAngleSliderContainer.appendChild(imageAngleSliderLabel)
+            imageAngleSliderContainer.appendChild(imageAngleSlider)
+            imageAngleSliderContainer.appendChild(imageAngleInput)
+
+            const fileTitle = document.createElement("h5")
+            fileTitle.innerText = "Add an image"
+
+            fileBlock.appendChild(fileTitle)
+            fileBlock.appendChild(fileInput)
+            fileBlock.appendChild(flexContainer)
+            fileBlock.appendChild(imageAngleSliderContainer)
+
+            div.appendChild(colorText)
+            div.appendChild(colorInput)
+            div.appendChild(nameBlock)
+            div.appendChild(numberBlock)
+            div.appendChild(fileBlock)
+
+            // div.appendChild(saveButton)
+            polygonPropsDiv.replaceChildren(div)
+        }
+
+
+        function updateArea() {
+            const geometry = draw.getSelected()
+            const area = turf.area(geometry);
+            const length = turf.length(geometry, { units: 'kilometers' });
+            const data = `
+                <div class="info-box">
+                    Size of selected shape
+                    <div> ${area.toFixed(2)} m<sup>2</sup></div>
+                    <div> ${(area * 10.764).toFixed(2)} sq.ft</div>
+                    <div> ${(area / 4047).toFixed(2)} acres</div>
+                </div>
+            `
+            polygonInfo.innerHTML = `${data}`
+        }
+
+        function initMap() {
+            const input = document.getElementById("search");
+            const autocomplete = new google.maps.places.Autocomplete(input);
+            autocomplete.addListener("place_changed", () => {
+                const place = autocomplete.getPlace();
+                if (!place.geometry || !place.geometry.location) {
+                    window.alert("No details available for input: '" + place.name + "'");
+                    return;
+                }
+                console.log('place.geometry', place.geometry);
+                const { lat, lng } = place.geometry.location.toJSON()
+                map.flyTo({
+                    center: { lat, lng },
+                    zoom: 19
+                })
+            });
+        }
+
+        function generateSaveProjectForm() {
+
+            if (mainData.currentProject && mainData.currentProject.polygon_id) {
+
+                fetch("https://serg.one/drawingToolUpload/api.php", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        polygon_id: mainData.currentProject.polygon_id,
+                        uid: localStorage.token,
+                        data: JSON.stringify(polys.getAll()),
+                        action: "save-project"
+                    })
+                }).then(res => res.json())
+                    .then(res => {
+                        console.log('res', res);
+                        if (res.success === false) {
+                            errorMessage.textContent = res.message
+                        } else {
+                            //success
+                            //save token to localstorage
+                        }
+                    })
+                return;
+            }
+
+
+            const div = document.createElement("div")
+            div.className = "save-project-form"
+
+            const projectName = document.createElement("input")
+            projectName.type = "text"
+            projectName.style.width = "300px"
+            projectName.placeholder = "New project name"
+
+            const errorMessage = document.createElement("div")
+            errorMessage.className = "error-message"
+
+            const saveButton = document.createElement("button")
+            saveButton.disabled = !localStorage.token ? true : false
+            saveButton.innerText = "Save"
+            saveButton.addEventListener("click", () => {
+                fetch("https://serg.one/drawingToolUpload/api.php", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        projectName: projectName.value,
+                        uid: localStorage.token,
+                        data: JSON.stringify(polys.getAll()),
+                        action: "save"
+                    })
+                }).then(res => res.json())
+                    .then(res => {
+                        console.log('res', res);
+                        if (res.success === false) {
+                            errorMessage.textContent = res.message
+                        } else {
+                            //success
+                            //save token to localstorage
+                            div.remove()
+                            mainData.currentProject = {
+                                polygon_id: res.polygon_id,
+                                name: projectName.value
+                            }
+                        }
+                    })
+            })
+
+            // const projectsList = document.createElement("div")
+            // projectsList.className = "projects-list"
+
+            // fetchProjectsList()
+            // function fetchProjectsList() {
+            //     fetch("https://serg.one/drawingToolUpload/api.php", {
+            //         method: "POST",
+            //         body: JSON.stringify({
+            //             uid: localStorage.token,
+            //             action: "load"
+            //         })
+            //     }).then(res => res.json())
+            //         .then(res => {
+            //             if (res && res.data) {
+
+            //                 const title = document.createElement("div")
+            //                 title.className = "projects-list-title"
+            //                 title.innerText = "Saved projects"
+            //                 projectsList.appendChild(title)
+
+            //                 res.data.map(project => {
+
+            //                     const div = document.createElement("div")
+            //                     div.className = "project-item"
+            //                     div.innerText = project.name
+            //                     const saveButton = document.createElement("button")
+            //                     saveButton.innerText = "Save"
+            //                     saveButton.addEventListener("click", () => {
+            //                         console.log('project.id', project.id);
+            //                     })
+            //                     div.appendChild(saveButton)
+            //                     projectsList.appendChild(div)
+            //                 })
+            //             }
+            //         })
+            // }
+
+            const cancelButton = document.createElement("button")
+            cancelButton.innerText = "Cancel"
+            cancelButton.addEventListener("click", () => {
+                div.remove()
+            })
+
+            div.appendChild(errorMessage)
+            div.appendChild(projectName)
+            div.appendChild(saveButton)
+            div.appendChild(cancelButton)
+            // div.appendChild(projectsList)
+
+            document.body.appendChild(div)
+        }
+
+        function generateRegisterForm() {
+
+            const div = document.createElement("div")
+            div.className = "register-form"
+
+            const errorMessage = document.createElement("div")
+            errorMessage.className = "error-message"
+
+            const email = document.createElement("input")
+            email.type = "email"
+            email.placeholder = "email"
+
+            const password = document.createElement("input")
+            password.type = "password"
+            password.placeholder = "password"
+
+            const registerButton = document.createElement("button")
+            registerButton.innerText = "Register"
+            registerButton.addEventListener("click", () => {
+
+                //check email and password
+                if (!email.value || !password.value) {
+                    errorMessage.textContent = "Please fill all fields"
+                    return
+                }
+
+                //regexp email 
+                const emailRegexp = /\S+@\S+\.\S+/
+                if (!emailRegexp.test(email.value)) {
+                    errorMessage.textContent = "Please enter valid email"
+                    return
+                }
+
+                //fetch this data to server
+                fetch("https://serg.one/drawingToolUpload/register.php", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        email: email.value,
+                        password: password.value,
+                        action: "register"
+                    })
+                }).then(res => res.json())
+                    .then(res => {
+                        console.log('res', res);
+                        if (res.success === false) {
+                            console.log('123', 123);
+                            errorMessage.textContent = res.message
+                        } else {
+                            //success
+                            //save token to localstorage
+                            localStorage.setItem("token", res.uid)
+                            localStorage.setItem("email", res.email)
+                            //remove register form
+                            div.remove()
+                            generateUserInfo()
+                        }
+                    })
+
+            })
+
+            const loginButton = document.createElement("button")
+            loginButton.innerText = "Login"
+            loginButton.addEventListener("click", () => {
+                //check email and password
+                if (!email.value || !password.value) {
+                    errorMessage.textContent = "Please fill all fields"
+                    return
+                }
+
+                //regexp email 
+                const emailRegexp = /\S+@\S+\.\S+/
+                if (!emailRegexp.test(email.value)) {
+                    errorMessage.textContent = "Please enter valid email"
+                    return
+                }
+
+                //fetch this data to server
+                fetch("https://serg.one/drawingToolUpload/register.php", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        email: email.value,
+                        password: password.value,
+                        action: "login"
+                    })
+                }).then(res => res.json())
+                    .then(res => {
+                        console.log('res', res);
+                        if (res.success === false) {
+                            errorMessage.textContent = res.message
+                        } else {
+                            //success
+                            //save token to localstorage
+                            localStorage.setItem("token", res.uid)
+                            localStorage.setItem("email", res.email)
+                            //remove register form
+                            div.remove()
+                            generateUserInfo()
+                        }
+                    })
+            })
+
+            const forgetButton = document.createElement("button")
+            forgetButton.innerText = "Forget password"
+            forgetButton.addEventListener("click", () => {
+                //check email and password
+                if (!email.value) {
+                    errorMessage.textContent = "Please enter your email"
+                    return
+                }
+
+                //regexp email 
+                const emailRegexp = /\S+@\S+\.\S+/
+                if (!emailRegexp.test(email.value)) {
+                    errorMessage.textContent = "Please enter valid email"
+                    return
+                }
+
+                //fetch this data to server
+                fetch("https://serg.one/drawingToolUpload/new_password.php", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        email: email.value,
+                        action: "new_password"
+                    })
+                }).then(res => res.json())
+                    .then(res => {
+                        console.log('res', res);
+                        if (res.success === false) {
+                            errorMessage.textContent = res.message
+                        } else {
+                            //success
+                            //save token to localstorage
+                            localStorage.setItem("token", res.uid)
+                            localStorage.setItem("email", res.email)
+                            //remove register form
+                            div.remove()
+                        }
+                    })
+            })
+
+            div.appendChild(email)
+            div.appendChild(password)
+            div.appendChild(errorMessage)
+            div.appendChild(registerButton)
+            div.appendChild(loginButton)
+            div.appendChild(forgetButton)
+
+            document.body.appendChild(div)
+            return div
+        }
+
+        function loadDataForm() {
+
+            const div = document.createElement("div")
+            div.className = "load-data-form"
+            div.innerHTML = "<center><h3>Your Maps</h3></center>"
+
+            //add close X at the top right corner
+            const close = document.createElement("div")
+            close.className = "close-button"
+            close.addEventListener("click", () => {
+                div.remove()
+            })
+            div.appendChild(close)
+
+
+            fetch("https://serg.one/drawingToolUpload/api.php", {
+                method: "POST",
+                body: JSON.stringify({
+                    uid: localStorage.token,
+                    action: "load"
+                })
+            }).then(res => res.json())
+                .then(res => {
+                    console.log('res', res);
+                    document.body.appendChild(div)
+                    if (res && res.data) {
+                        res.data.map(project => {
+                            div.appendChild(loadProject(project))
+                        })
+                    }
+                })
+
+            function loadProject(project) {
+                console.log('project', project);
+                mainData.currentProject = project
+
+                const projectName = document.createElement("div")
+                projectName.innerText = project.name
+                projectName.className = "load-data-form-item"
+                projectName.addEventListener("click", () => {
+
+                    //remove prev project
+                    polys.deleteProject()
+
+                    const data = JSON.parse(project.data)
+                    console.log('data', data);
+                    data.forEach(item => {
+                        polys.addItem(item)
+                        polys.updateLayer(item.id, true)
+                    })
+                    div.remove()
+                    generateLegend()
+
+                    polys.saveToHistory()//add polys to history 
+
+                    //fit geometry 
+                    const collection = turf.featureCollection(data.map(d => {
+                        return d.geom.type === "FeatureCollection" ? d.geom.features[0] : d.geom
+                    }))
+
+                    map && map.fitBounds(turf.bbox(collection), {
+                        padding: 200
+                    })
+                })
+                return projectName
+            }
+        }
+
+        function generateUserInfo() {
+            const userInfo = document.createElement("div")
+            userInfo.className = "user-info"
+
+            const userEmail = document.createElement("div")
+            userEmail.innerText = localStorage.email
+            userEmail.className = "user-email"
+
+            const loggOutButton = document.createElement("button")
+            loggOutButton.className = "buttons"
+            loggOutButton.innerText = "Log out"
+            loggOutButton.addEventListener("click", () => {
+                localStorage.setItem("token", "")
+                localStorage.setItem("email", "")
+                userInfo.remove()
+                generateRegisterForm()
+                location.reload()
+            })
+
+            const saveProjectButton = document.createElement("button")
+            saveProjectButton.className = "buttons"
+            saveProjectButton.innerText = "Save"
+            saveProjectButton.addEventListener("click", () => {
+                generateSaveProjectForm()
+            })
+
+            const loadProjectButton = document.createElement("button")
+            loadProjectButton.className = "buttons"
+            loadProjectButton.innerText = "Load"
+            loadProjectButton.addEventListener("click", () => {
+                loadDataForm()
+            })
+
+
+            userInfo.appendChild(userEmail)
+
+
+            adminTools.appendChild(saveProjectButton)
+            adminTools.appendChild(loadProjectButton)
+            adminTools.appendChild(loggOutButton)
+            userDiv.appendChild(userInfo)
+        }
+
+        if (!localStorage.token || localStorage.token === "") {
+            generateRegisterForm()
+        } else {
+            generateUserInfo()
+        }
+
+
+
+    </script>
+
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBrK7zAmbEFKIyv_g6XOE3WpSq34nOYuEI&callback=initMap&libraries=places&v=weekly"
+        defer></script>
+
+</body>
+
+</html>
