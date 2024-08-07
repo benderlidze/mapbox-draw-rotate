@@ -350,7 +350,7 @@
                 fillColor: "white",
                 opacity: 0.9,
                 buttonIconImage: "img/coffee.png",
-                disabledButton: true
+                disabledButton: false
             },
 
             {
@@ -385,6 +385,34 @@
                 opacity: 0.9,
                 buttonIconImage: "img/coffee.png",
                 disabledButton: true
+            },
+            {
+                categoryName: "Padel",
+                name: "1 court (20m x 10m court)",
+                geometry: [[
+                    { "x": 580, "y": 500 },
+                    { "x": 580, "y": 715 },
+                    { "x": 695, "y": 715 },
+                    { "x": 695, "y": 500 },
+                    { "x": 580, "y": 500 }
+                ]],
+                fillColor: "green",
+                opacity: 0.8,
+                backgroundImage: "img/padel.png",
+            },
+            {
+                categoryName: "Padel",
+                name: "2 court",
+                geometry: [[
+                    { "x": 704, "y": 509 },
+                    { "x": 444, "y": 509 },
+                    { "x": 444, "y": 719 },
+                    { "x": 704, "y": 719 },
+                    { "x": 704, "y": 509 }
+                ]],
+                fillColor: "brown",
+
+                backgroundImage: "img/padelx2.png",
             },
         ]
 
@@ -846,9 +874,13 @@
             if (data.disabledButton) {
                 const overlay = document.createElement('div')
                 overlay.style.position = "relative"
+                overlay.addEventListener("click", () => {
+                    //open in new tab
+                    window.open("https://www.therequirementlist.com/pricing", "_blank")
+                })
 
                 const span = document.createElement('span')
-                span.innerText = "Upgrade to access"
+                span.innerText = "Signup to access"
                 span.className = "upgrade-button"
 
                 overlay.appendChild(span)
