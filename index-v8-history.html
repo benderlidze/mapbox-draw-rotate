@@ -204,6 +204,14 @@
             padding: 10px;
             flex-direction: column;
             font: 0.8em sans-serif;
+
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            cursor: pointer;
+            margin: 5px;
         }
     </style>
 </head>
@@ -894,38 +902,35 @@
         })
 
         function historyUpdate() {
+            console.log('---historyUpdate---',);
             const tempGeometry = []
+            //serialize data
             mainData.layers.forEach(d => {
-                g = d.getGeometry();
-                tempGeometry.push(g)
+                const json = d.toJson()
+                tempGeometry.push(json)
             })
             history.push({
-                date: new Date(),
-                data: tempGeometry
+                data: tempGeometry,
+                date: new Date().toLocaleString()
             })
-            console.log('history', history);
 
-            
-            historyDiv.innerHTML = ""
+            historyDiv.innerHTML = history.map((d, i) => {
+                return `<div class="history-item" onclick="restoreHistory(${i})">${d.date}</div>`
+            }).join("")
         }
 
-        function setHistory(id){
-
-            const data = history[id].data
+        function restoreHistory(stepId) {
+            const data = history[stepId].data
             mainData.layers.forEach(d => {
                 d.deleteGeometry()
             })
-
             data.forEach(d => {
-                const geometryObj = generateLayer({
-                    polyCoordinates: d.features[0].geometry.coordinates[0]
-                })
-
+                const geometryObj = generateLayer(d)
                 mainData.layers.set(geometryObj.layerId, {
                     ...geometryObj
                 })
             })
-
+            console.log('data', data);
         }
 
         function addPlaceholder(text) {
@@ -1012,9 +1017,9 @@
             })
         }
 
-        function generateLayer({ polyCoordinates, type = "polygon", fillColor = "#0080ff", opacity = 0.5, isImageLayer = false }) {
+        function generateLayer({ polyCoordinates, type = "polygon", fillColor = "#0080ff", opacity = 0.5, isImageLayer = false, geometryLayerId }) {
 
-            const layerId = generateId()
+            const layerId = geometryLayerId || generateId()
             const geometryLayer = 'geom_' + layerId
             const imageLayer = 'image_' + layerId
 
@@ -1086,14 +1091,40 @@
                 map.getSource(imageLayer) && map.removeSource(imageLayer)
             }
 
+            function toJson() {
+                return {
+                    polyCoordinates: turf.coordAll(getGeometry()),
+                    type,
+                    fillColor,
+                    opacity,
+                    isImageLayer,
+                    geometryLayerId: layerId
+                }
+            }
+
             return Object.freeze({
                 layerId,
                 updateGeometry,
                 updateInfo,
                 getGeometry,
-                deleteGeometry
+                deleteGeometry,
+                toJson
             })
         }
+
+        function deleteByLayerId(layerId) {
+
+            const geometryLayer = 'geom_' + layerId
+            const imageLayer = 'image_' + layerId
+
+            map.getLayer(geometryLayer) && map.removeLayer(geometryLayer)
+            map.getLayer(imageLayer) && map.removeLayer(imageLayer)
+
+            map.getSource(geometryLayer) && map.removeSource(geometryLayer)
+            map.getSource(imageLayer) && map.removeSource(imageLayer)
+
+        }
+
 
         function generateId() {
             return (new Date()).getTime()
