@@ -248,8 +248,8 @@
 
         .user-info {
             display: flex;
-            flex-direction: column;
-            /* align-items: center; */
+            flex-direction: row;
+            align-items: center;
             justify-content: flex-start;
             padding: 10px 0px;
         }
@@ -435,14 +435,11 @@
                 <span class="slider round"></span>
             </label>
         </div>
-        <hr>
-        <div class="item-header">
+        <div class="item-header" style="display: none;">
             Tools
         </div>
-        <!-- <input type="file" id="fileInput" accept="image/png, image/jpeg, image/gif , image/webp">
-        <div id="imagePreview"></div> -->
 
-        <div class="draw">
+        <div class="draw" style="display: none;">
             <button id="draw" class="buttons">Draw</button>
             <!-- <button id="rotate" class="buttons">Rotate</button> -->
             <button id="delete" class="buttons">Delete</button>
@@ -453,9 +450,8 @@
             </div>
             <!-- <button id="addInfo" class="buttons">Add info</button> -->
         </div>
-        <hr>
         <div class="item-header">
-            Admin
+
         </div>
         <div id="admin-tools"></div>
 
@@ -469,6 +465,11 @@
             <div id="shop-list"></div>
         </div>
 
+        <div class="item-header">
+            Projects
+        </div>
+        <hr>
+        <div id="projects"></div>
         <hr>
 
         <div class="item-header">
@@ -477,18 +478,21 @@
 
 
     </div>
-
     <div id="polygon-info-container">
         <div id="polygon-info"></div>
         *Double click to measure an object
     </div>
 
-    <div id="polygon-props-container"></div>
+    <div id="polygon-props-container" style="display: none;"></div>
     <div id="map-container">
         <div id="map"></div>
         <div id="legend"></div>
     </div>
     <script>
+
+        const urlObject = new URL(window.location.href);
+        const UID = urlObject.searchParams.get("id")
+
         const apiURL = `https://mistyrose-yak-266010.hostingersite.com/drawingToolUpload/`
 
         const polygonInfoContainer = document.getElementById('polygon-info-container');
@@ -1934,29 +1938,21 @@
 
         function loadDataForm() {
 
-            const div = document.createElement("div")
-            div.className = "load-data-form"
-            div.innerHTML = "<center><h3>Your Maps</h3></center>"
+            const div = document.getElementById("projects")
+            // div.className = "load-data-form"
+            // div.innerHTML = "<center><h3>Your Maps</h3></center>"
 
-            //add close X at the top right corner
-            const close = document.createElement("div")
-            close.className = "close-button"
-            close.addEventListener("click", () => {
-                div.remove()
-            })
-            div.appendChild(close)
 
 
             fetch(apiURL + "/api.php", {
                 method: "POST",
                 body: JSON.stringify({
-                    uid: localStorage.token,
+                    uid: UID,
                     action: "load"
                 })
             }).then(res => res.json())
                 .then(res => {
                     console.log('res', res);
-                    document.body.appendChild(div)
                     if (res && res.data) {
                         res.data.map(project => {
                             div.appendChild(loadProject(project))
@@ -1982,10 +1978,10 @@
                         polys.addItem(item)
                         polys.updateLayer(item.id, true)
                     })
-                    div.remove()
-                    generateLegend()
 
-                    polys.saveToHistory()//add polys to history 
+                    // div.remove()
+                    // generateLegend()
+                    // polys.saveToHistory()//add polys to history 
 
                     //fit geometry 
                     const collection = turf.featureCollection(data.map(d => {
@@ -2036,27 +2032,17 @@
 
             userInfo.appendChild(userEmail)
 
-
             adminTools.appendChild(saveProjectButton)
             adminTools.appendChild(loadProjectButton)
             adminTools.appendChild(loggOutButton)
             userDiv.appendChild(userInfo)
-
-
-            const link = document.createElement("a")
-            link.href = location.protocol + '//' + location.host + `/index-v23-link.html` + "?id=" + localStorage.token
-            link.innerText = "Project link"
-            link.className = "share-link"
-            link.target = "_blank"
-
-            userInfo.appendChild(link)
-
         }
 
-        if (!localStorage.token || localStorage.token === "") {
+        if (!UID || UID === "") {
             generateRegisterForm()
         } else {
-            generateUserInfo()
+            // generateUserInfo()
+            loadDataForm()
         }
 
 

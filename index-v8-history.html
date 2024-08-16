@@ -87,6 +87,7 @@
 
         .draw {
             display: flex;
+            flex-wrap: wrap;
         }
 
         .draw>button {
@@ -243,6 +244,7 @@
             <button id="rotate" class="buttons">Rotate</button>
             <button id="delete" class="buttons">Delete</button>
             <button id="addInfo" class="buttons">Add info</button>
+            <button id="moveToFront" class="buttons">To front</button>
         </div>
         <hr>
         <div class="item-header">
@@ -301,6 +303,7 @@
         const resetButton = document.getElementById("resetSectors");
         const helpButton = document.getElementById("help");
         const addInfoButton = document.getElementById("addInfo");
+        const moveToFront = document.getElementById("moveToFront");
         const screenshot = document.getElementById("screenshot");
 
         const history = []
@@ -752,6 +755,14 @@
 
             draw.deleteAll()
         })
+
+        moveToFront.addEventListener("click", () => {
+            const selectedGeometry = draw.getSelected()
+            const id = selectedGeometry.features[0].properties.gid
+            const polygonObj = mainData.layers.get(id)
+            polygonObj.toFront()
+        })
+
         resetButton.addEventListener("click", () => {
 
             mainData.layers.forEach(d => {
@@ -1102,12 +1113,18 @@
                 }
             }
 
+            function toFront() {
+                map.getLayer(geometryLayer) && map.moveLayer(geometryLayer)
+                map.getLayer(imageLayer) && map.moveLayer(imageLayer)
+            }
+
             return Object.freeze({
                 layerId,
                 updateGeometry,
                 updateInfo,
                 getGeometry,
                 deleteGeometry,
+                toFront,
                 toJson
             })
         }
