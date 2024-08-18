@@ -1368,9 +1368,15 @@
                 polygon = geometry.features[0]
             }
 
+            console.log('props', props);
             const color = props.fillColor || "#0080ff"
             const name = props.name || ""
             const number = props.number || ""
+            const planningValue = props.planningInput || ""
+            const letterSentValue = props.letterSentInput || ""
+            const notesValue = props.notesInput || ""
+
+
             const image = "https://nikolsky.com.ua/wp-content/uploads/2021/02/house.png" || ""
 
             const div = document.createElement("div")
@@ -1450,6 +1456,60 @@
             nameBlock.appendChild(showNameDiv)
             nameBlock.appendChild(nameBlockFlexContainer)
 
+            //------------Recent Planning ------ // 
+            const planningTitle = document.createElement("h5")
+            planningTitle.innerText = "Recent Planning"
+
+            const planningBlockFlexContainer = document.createElement("div")
+            planningBlockFlexContainer.classplanning = "flex-container"
+
+            const planningBlock = document.createElement("div")
+            planningBlock.className = "block-wrapper"
+
+            const planningInput = document.createElement("input")
+            planningInput.placeholder = "Link"
+            planningInput.value = planningValue
+            planningInput.addEventListener("input", e => {
+                const value = e.target.value
+                updateProp(id, "planningInput", value)
+            })
+
+            //Letter Sent 
+            const letterSentBlock = document.createElement("div")
+            const letterSentTitle = document.createElement("h5")
+            letterSentTitle.innerText = "Letter Sent"
+            const letterSentInput = document.createElement("input")
+            letterSentInput.placeholder = "Letter Sent"
+            letterSentInput.value = letterSentValue
+            letterSentInput.addEventListener("input", e => {
+                const value = e.target.value
+                updateProp(id, "letterSentInput", value)
+            })
+            letterSentBlock.appendChild(letterSentTitle)
+            letterSentBlock.appendChild(letterSentInput)
+
+            //Letter Sent 
+            const notesBlock = document.createElement("div")
+            const notesTitle = document.createElement("h5")
+            notesTitle.innerText = "Notes"
+            const notesInput = document.createElement("input")
+            notesInput.placeholder = "Notes"
+            notesInput.value = notesValue
+            notesInput.addEventListener("input", e => {
+                const value = e.target.value
+                updateProp(id, "notesInput", value)
+            })
+            notesBlock.appendChild(notesTitle)
+            notesBlock.appendChild(notesInput)
+
+            planningBlock.appendChild(planningTitle)
+            planningBlock.appendChild(planningInput)
+            planningBlock.appendChild(planningBlockFlexContainer)
+
+            planningBlock.appendChild(letterSentBlock)
+            planningBlock.appendChild(notesBlock)
+
+
             //NUMBER
             const numberBlockFlexContainer = document.createElement("div")
             numberBlockFlexContainer.className = "flex-container"
@@ -1527,7 +1587,7 @@
                     formData.append('image', file);
 
                     try {
-                        const response = await fetch(apiURL + '/upload.php', {
+                        const response = await fetch(apiURL + 'upload.php', {
                             method: 'POST',
                             body: formData
                         });
@@ -1622,6 +1682,7 @@
             div.appendChild(colorText)
             div.appendChild(colorInput)
             div.appendChild(nameBlock)
+            div.appendChild(planningBlock)
             div.appendChild(numberBlock)
             div.appendChild(fileBlock)
 
@@ -1667,7 +1728,7 @@
 
             if (mainData.currentProject && mainData.currentProject.polygon_id) {
 
-                fetch(apiURL + "/api.php", {
+                fetch(apiURL + "api.php", {
                     method: "POST",
                     body: JSON.stringify({
                         polygon_id: mainData.currentProject.polygon_id,
@@ -1704,7 +1765,7 @@
             saveButton.disabled = !localStorage.token ? true : false
             saveButton.innerText = "Save"
             saveButton.addEventListener("click", () => {
-                fetch(apiURL + "/api.php", {
+                fetch(apiURL + "api.php", {
                     method: "POST",
                     body: JSON.stringify({
                         projectName: projectName.value,
@@ -1815,7 +1876,7 @@
                 }
 
                 //fetch this data to server
-                fetch(apiURL + "/register.php", {
+                fetch(apiURL + "register.php", {
                     method: "POST",
                     body: JSON.stringify({
                         email: email.value,
@@ -1858,7 +1919,7 @@
                 }
 
                 //fetch this data to server
-                fetch(apiURL + "/register.php", {
+                fetch(apiURL + "register.php", {
                     method: "POST",
                     body: JSON.stringify({
                         email: email.value,
@@ -1899,7 +1960,7 @@
                 }
 
                 //fetch this data to server
-                fetch(apiURL + "/new_password.php", {
+                fetch(apiURL + "new_password.php", {
                     method: "POST",
                     body: JSON.stringify({
                         email: email.value,
@@ -1947,7 +2008,7 @@
             div.appendChild(close)
 
 
-            fetch(apiURL + "/api.php", {
+            fetch(apiURL + "api.php", {
                 method: "POST",
                 body: JSON.stringify({
                     uid: localStorage.token,
