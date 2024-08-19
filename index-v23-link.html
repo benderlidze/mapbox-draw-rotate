@@ -1208,80 +1208,80 @@
                 }
             })
 
-            map.on('click', (e) => {
+            // map.on('click', (e) => {
 
-                console.log('draw.getMode()', draw.getMode());
-                if (draw.getMode() === draw.modes.DRAW_POLYGON) {
-                    drawPolygonMode = true
-                    return
-                }
+            //     console.log('draw.getMode()', draw.getMode());
+            //     if (draw.getMode() === draw.modes.DRAW_POLYGON) {
+            //         drawPolygonMode = true
+            //         return
+            //     }
 
-            })
+            // })
 
-            map.on("draw.update", (e) => {
-                console.log('DRAW UPDATE!!!',);
-                const mode = draw.getMode()
-                const selectedGeometry = draw.getSelected()
-                console.log('geometry', selectedGeometry);
-                const id = selectedGeometry.features[0].id
+            // map.on("draw.update", (e) => {
+            //     console.log('DRAW UPDATE!!!',);
+            //     const mode = draw.getMode()
+            //     const selectedGeometry = draw.getSelected()
+            //     console.log('geometry', selectedGeometry);
+            //     const id = selectedGeometry.features[0].id
 
-                const item = polys.getItem(id)
-                if (item) {
-                    console.log(id, "geom====>", selectedGeometry);
-                    const updatedGeometry = selectedGeometry.type === "FeatureCollection" ? selectedGeometry.features[0] : selectedGeometry
-                    updateProp(id, "geom", updatedGeometry)
-                } else {
-                    console.error("no item found")
-                }
-            })
+            //     const item = polys.getItem(id)
+            //     if (item) {
+            //         console.log(id, "geom====>", selectedGeometry);
+            //         const updatedGeometry = selectedGeometry.type === "FeatureCollection" ? selectedGeometry.features[0] : selectedGeometry
+            //         updateProp(id, "geom", updatedGeometry)
+            //     } else {
+            //         console.error("no item found")
+            //     }
+            // })
 
-            map.on("draw.selectionchange", (e) => {
-                console.log('draw.selectionchange',);
-            })
+            // map.on("draw.selectionchange", (e) => {
+            //     console.log('draw.selectionchange',);
+            // })
 
-            map.on("draw.modechange", (e) => {
-                console.log('draw.modechange', draw.getMode());
-                console.log('draw.modechange', draw.getSelected());
+            // map.on("draw.modechange", (e) => {
+            //     console.log('draw.modechange', draw.getMode());
+            //     console.log('draw.modechange', draw.getSelected());
 
-                if (drawPolygonMode) {
+            //     if (drawPolygonMode) {
 
-                    drawPolygonMode = false;
+            //         drawPolygonMode = false;
 
-                    const coordinates = draw.getSelected().features[0].geometry.coordinates
-                    console.log('draw.getSelected()', draw.getSelected());
+            //         const coordinates = draw.getSelected().features[0].geometry.coordinates
+            //         console.log('draw.getSelected()', draw.getSelected());
 
-                    const layerId = draw.getSelected().features[0].id
-                    const polygon = draw.getSelected().features[0]
-                    const center = turf.centerOfMass(polygon)
-                    const [lng, lat] = turf.getCoords(center)
-                    const numberPosition = draw.getSelected().features[0].geometry.coordinates[0][0]
+            //         const layerId = draw.getSelected().features[0].id
+            //         const polygon = draw.getSelected().features[0]
+            //         const center = turf.centerOfMass(polygon)
+            //         const [lng, lat] = turf.getCoords(center)
+            //         const numberPosition = draw.getSelected().features[0].geometry.coordinates[0][0]
 
-                    polys.addItem({
-                        id: layerId,
-                        //obj: geometryObj,
-                        geom: polygon,
+            //         polys.addItem({
+            //             id: layerId,
+            //             //obj: geometryObj,
+            //             geom: polygon,
 
-                        name: "Tesco or Unit 1",
-                        namePosition: [lng, lat],
-                        nameAngle: 0,
-                        showName: 'visible',
+            //             name: "Tesco or Unit 1",
+            //             namePosition: [lng, lat],
+            //             nameAngle: 0,
+            //             showName: 'visible',
 
-                        number: "Size or unit #",
-                        numberPosition: numberPosition,
-                        numberAngle: 0,
-                        showNumber: 'visible',
+            //             number: "Size or unit #",
+            //             numberPosition: numberPosition,
+            //             numberAngle: 0,
+            //             showNumber: 'visible',
 
-                        // imageUrl: "img/logos/dummy_icon.png",
-                        imageUrl: "",
-                        imagePosition: [lng, lat],
-                        imageSize: 5,
-                        imageAngle: 0,
+            //             // imageUrl: "img/logos/dummy_icon.png",
+            //             imageUrl: "",
+            //             imagePosition: [lng, lat],
+            //             imageSize: 5,
+            //             imageAngle: 0,
 
-                        fillColor: "#0080ff",
-                        opacity: 0.5,
-                    })
-                }
-            })
+            //             fillColor: "#0080ff",
+            //             opacity: 0.5,
+            //         })
+            //     }
+            // })
 
         })
 
@@ -1636,6 +1636,8 @@
 
         function updateArea() {
             const geometry = draw.getSelected()
+            draw.changeMode(draw.modes.SIMPLE_SELECT)
+            
             const area = turf.area(geometry);
             const length = turf.length(geometry, { units: 'kilometers' });
             const data = `

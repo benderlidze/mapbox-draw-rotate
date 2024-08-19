@@ -1295,7 +1295,13 @@
 
             const title = document.createElement(`table`)
             title.className = "legend-table"
-            title.innerHTML = `<tr><th></th><th>Size</th><th>Name</th></tr>`
+            title.innerHTML = `<tr><th></th>
+                <th>Size</th>
+                <th>Name</th>
+                <th>Recent Planning</th>
+                <th>Letter Sent</th>
+                <th>Notes</th>
+            </tr>`
 
 
             //add div to dom
@@ -1305,7 +1311,7 @@
                         return a.number - b.number
                     })
                     .map(p => {
-
+                        console.log('p',p);
                         return title.appendChild(createItem(p))
                     })
                 // title.replaceChildren(...items)
@@ -1321,9 +1327,19 @@
             function createItem(data) {
                 const container = document.createElement("tr")
 
-                // item.className = "legend-item"
-                // item.innerHTML = `<div>${data.number}</div><div>${data.name}</div>`
-                container.innerHTML = `<td><div class="legend-circle" style="background-color:${data.fillColor}"></div></td><td>${data.number}</td><td>${data.name}</td>`
+                const planningInput = data.planningInput || "-"
+                const letterSentInput = data.letterSentInput || "-"
+                const notesInput = data.notesInput || "-"
+                
+
+                container.innerHTML = `<td><div class="legend-circle" style="background-color:${data.fillColor}"></div></td>
+                <td>${data.number}</td>
+                <td>${data.name}</td>
+                <td>${planningInput}</td>
+                <td>${letterSentInput}</td>
+                <td>${notesInput}</td>
+                
+                `
 
                 container.addEventListener("click", () => {
                     map.fitBounds(turf.bbox(data.geom), {
