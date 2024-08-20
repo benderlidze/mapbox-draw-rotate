@@ -384,6 +384,7 @@
             display: flex;
             flex-direction: row;
             gap: 3px;
+            flex-wrap: wrap;
         }
 
         .legend-table {
@@ -403,6 +404,10 @@
             justify-content: flex-start;
             padding: 5px;
             cursor: pointer;
+        }
+
+        .owner-dropdown-container {
+            display: flex;
         }
     </style>
 </head>
@@ -1288,7 +1293,7 @@
 
         function generateLegend() {
 
-            console.log('generateLegend');
+            console.log('generateLegend', mainData.currentProject);
 
             const div = document.createElement("div")
             div.className = "legend"
@@ -1311,7 +1316,7 @@
                         return a.number - b.number
                     })
                     .map(p => {
-                        console.log('p',p);
+                        console.log('p', p);
                         return title.appendChild(createItem(p))
                     })
                 // title.replaceChildren(...items)
@@ -1330,7 +1335,6 @@
                 const planningInput = data.planningInput || "-"
                 const letterSentInput = data.letterSentInput || "-"
                 const notesInput = data.notesInput || "-"
-                
 
                 container.innerHTML = `<td><div class="legend-circle" style="background-color:${data.fillColor}"></div></td>
                 <td>${data.number}</td>
@@ -1391,7 +1395,6 @@
             const planningValue = props.planningInput || ""
             const letterSentValue = props.letterSentInput || ""
             const notesValue = props.notesInput || ""
-
 
             const image = "https://nikolsky.com.ua/wp-content/uploads/2021/02/house.png" || ""
 
@@ -1750,7 +1753,8 @@
                         polygon_id: mainData.currentProject.polygon_id,
                         uid: localStorage.token,
                         data: JSON.stringify(polys.getAll()),
-                        action: "save-project"
+                        action: "save-project",
+                        owner: mainData.currentProject.owner
                     })
                 }).then(res => res.json())
                     .then(res => {
@@ -1800,7 +1804,7 @@
                             div.remove()
                             mainData.currentProject = {
                                 polygon_id: res.polygon_id,
-                                name: projectName.value
+                                name: projectName.value,
                             }
                         }
                     })
@@ -2042,7 +2046,7 @@
                 })
 
             function loadProject(project) {
-                console.log('project', project);
+                console.log('project!!!!!!!!!!!!!!!!!!!', project);
                 mainData.currentProject = project
 
                 const projectName = document.createElement("div")
@@ -2050,11 +2054,14 @@
                 projectName.className = "load-data-form-item"
                 projectName.addEventListener("click", () => {
 
+                    mainData.currentProject = project
+
                     //remove prev project
                     polys.deleteProject()
 
                     const data = JSON.parse(project.data)
-                    console.log('data', data);
+                    console.log('data--->>>>', data, project);
+
                     data.forEach(item => {
                         polys.addItem(item)
                         polys.updateLayer(item.id, true)
@@ -2072,6 +2079,19 @@
                     map && map.fitBounds(turf.bbox(collection), {
                         padding: 200
                     })
+
+                    //check the owner from drop down 
+                    const owners = document.querySelectorAll("#owner option")
+                    if (project.owner) {
+                        owners.forEach(owner => {
+                            if (owner.value === project.owner) {
+                                owner.selected = true
+                            }
+                        })
+                    } else {
+                        owners[0].selected = true
+                    }
+
                 })
                 return projectName
             }
@@ -2110,6 +2130,23 @@
                 loadDataForm()
             })
 
+            const ownerDropDownDiv = document.createElement("div");
+            const ownerDropDown = document.createElement("select");
+            ownerDropDown.id = "owner";
+            ownerDropDown.className = "owner-dropdown";
+            ownerDropDown.innerHTML = `
+                <option value="" disabled selected>Select an owner</option>
+                <option value="ABC Land">ABC Land</option>
+                <option value="British Land">British Land</option>
+                <option value="TEST">TEST</option>
+            `;
+
+            ownerDropDown.addEventListener("change", e => {
+                console.log('e.target.value', e.target.value);
+                mainData.currentProject.owner = e.target.value
+            })
+            ownerDropDownDiv.appendChild(ownerDropDown)
+
 
             userInfo.appendChild(userEmail)
 
@@ -2117,6 +2154,7 @@
             adminTools.appendChild(saveProjectButton)
             adminTools.appendChild(loadProjectButton)
             adminTools.appendChild(loggOutButton)
+            adminTools.appendChild(ownerDropDownDiv)
             userDiv.appendChild(userInfo)
 
 
