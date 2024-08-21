@@ -248,8 +248,8 @@
 
         .user-info {
             display: flex;
-            flex-direction: column;
-            /* align-items: center; */
+            flex-direction: row;
+            align-items: center;
             justify-content: flex-start;
             padding: 10px 0px;
         }
@@ -384,7 +384,6 @@
             display: flex;
             flex-direction: row;
             gap: 3px;
-            flex-wrap: wrap;
         }
 
         .legend-table {
@@ -404,10 +403,6 @@
             justify-content: flex-start;
             padding: 5px;
             cursor: pointer;
-        }
-
-        .owner-dropdown-container {
-            display: flex;
         }
     </style>
 </head>
@@ -440,14 +435,11 @@
                 <span class="slider round"></span>
             </label>
         </div>
-        <hr>
-        <div class="item-header">
+        <div class="item-header" style="display: none;">
             Tools
         </div>
-        <!-- <input type="file" id="fileInput" accept="image/png, image/jpeg, image/gif , image/webp">
-        <div id="imagePreview"></div> -->
 
-        <div class="draw">
+        <div class="draw" style="display: none;">
             <button id="draw" class="buttons">Draw</button>
             <!-- <button id="rotate" class="buttons">Rotate</button> -->
             <button id="delete" class="buttons">Delete</button>
@@ -458,9 +450,8 @@
             </div>
             <!-- <button id="addInfo" class="buttons">Add info</button> -->
         </div>
-        <hr>
         <div class="item-header">
-            Admin
+
         </div>
         <div id="admin-tools"></div>
 
@@ -474,6 +465,11 @@
             <div id="shop-list"></div>
         </div>
 
+        <div class="item-header">
+            Projects
+        </div>
+        <hr>
+        <div id="projects"></div>
         <hr>
 
         <div class="item-header">
@@ -482,18 +478,21 @@
 
 
     </div>
-
     <div id="polygon-info-container">
         <div id="polygon-info"></div>
         *Double click to measure an object
     </div>
 
-    <div id="polygon-props-container"></div>
+    <div id="polygon-props-container" style="display: none;"></div>
     <div id="map-container">
         <div id="map"></div>
         <div id="legend"></div>
     </div>
     <script>
+
+        const urlObject = new URL(window.location.href);
+        const UID = urlObject.searchParams.get("id")
+
         const apiURL = `https://mistyrose-yak-266010.hostingersite.com/drawingToolUpload/`
 
         const polygonInfoContainer = document.getElementById('polygon-info-container');
@@ -897,46 +896,46 @@
                         }
                     });
 
-                    function onMove(e) {
-                        if (dragginType !== "number") return;
-                        const coords = e.lngLat;
-                        canvas.style.cursor = 'grabbing';
-                        polys.updateProp(movableLayerID, "numberPosition", [coords.lng, coords.lat])
-                    }
-                    function onUp(e) {
-                        const coords = e.lngLat;
-                        canvas.style.cursor = '';
-                        map.off('mousemove', onMove);
-                        map.off('touchmove', onMove);
-                        dragginType = null
-                    }
+                    // function onMove(e) {
+                    //     if (dragginType !== "number") return;
+                    //     const coords = e.lngLat;
+                    //     canvas.style.cursor = 'grabbing';
+                    //     polys.updateProp(movableLayerID, "numberPosition", [coords.lng, coords.lat])
+                    // }
+                    // function onUp(e) {
+                    //     const coords = e.lngLat;
+                    //     canvas.style.cursor = '';
+                    //     map.off('mousemove', onMove);
+                    //     map.off('touchmove', onMove);
+                    //     dragginType = null
+                    // }
 
-                    map.on('mouseenter', layerID, () => {
-                        canvas.style.cursor = 'move';
-                    });
+                    // map.on('mouseenter', layerID, () => {
+                    //     canvas.style.cursor = 'move';
+                    // });
 
-                    map.on('mouseleave', layerID, () => {
-                        canvas.style.cursor = '';
-                    });
+                    // map.on('mouseleave', layerID, () => {
+                    //     canvas.style.cursor = '';
+                    // });
 
-                    map.on('mousedown', layerID, (e) => {
-                        // Prevent the default map drag behavior.
-                        movableLayerID = id
-                        e.preventDefault();
-                        canvas.style.cursor = 'grab';
-                        console.log('Mouse event');
-                        map.on('mousemove', onMove);
-                        map.once('mouseup', onUp);
-                        dragginType = "number"
-                    });
+                    // map.on('mousedown', layerID, (e) => {
+                    //     // Prevent the default map drag behavior.
+                    //     movableLayerID = id
+                    //     e.preventDefault();
+                    //     canvas.style.cursor = 'grab';
+                    //     console.log('Mouse event');
+                    //     map.on('mousemove', onMove);
+                    //     map.once('mouseup', onUp);
+                    //     dragginType = "number"
+                    // });
 
-                    map.on('touchstart', layerID, (e) => {
-                        if (e.points.length !== 1) return;
-                        // Prevent the default map drag behavior.
-                        e.preventDefault();
-                        map.on('touchmove', onMove);
-                        map.once('touchend', onUp);
-                    });
+                    // map.on('touchstart', layerID, (e) => {
+                    //     if (e.points.length !== 1) return;
+                    //     // Prevent the default map drag behavior.
+                    //     e.preventDefault();
+                    //     map.on('touchmove', onMove);
+                    //     map.once('touchend', onUp);
+                    // });
                 }
             }
 
@@ -1014,46 +1013,46 @@
                         }
                     });
 
-                    function onMoveName(e) {
-                        if (dragginType !== "name") return;
-                        const coords = e.lngLat;
-                        canvas.style.cursor = 'grabbing';
-                        polys.updateProp(movableLayerID, "namePosition", [coords.lng, coords.lat])
-                    }
-                    function onUpName(e) {
-                        const coords = e.lngLat;
-                        canvas.style.cursor = '';
-                        map.off('mousemove', onMoveName);
-                        map.off('touchmove', onMoveName);
-                        dragginType = null
-                    }
+                    // function onMoveName(e) {
+                    //     if (dragginType !== "name") return;
+                    //     const coords = e.lngLat;
+                    //     canvas.style.cursor = 'grabbing';
+                    //     polys.updateProp(movableLayerID, "namePosition", [coords.lng, coords.lat])
+                    // }
+                    // function onUpName(e) {
+                    //     const coords = e.lngLat;
+                    //     canvas.style.cursor = '';
+                    //     map.off('mousemove', onMoveName);
+                    //     map.off('touchmove', onMoveName);
+                    //     dragginType = null
+                    // }
 
-                    map.on('mouseenter', layerID, () => {
-                        canvas.style.cursor = 'move';
-                    });
+                    // map.on('mouseenter', layerID, () => {
+                    //     canvas.style.cursor = 'move';
+                    // });
 
-                    map.on('mouseleave', layerID, () => {
-                        canvas.style.cursor = '';
-                    });
+                    // map.on('mouseleave', layerID, () => {
+                    //     canvas.style.cursor = '';
+                    // });
 
-                    map.on('mousedown', layerID, (e) => {
-                        // Prevent the default map drag behavior.
-                        movableLayerID = id
-                        e.preventDefault();
-                        canvas.style.cursor = 'grab';
-                        console.log('MOVING NUMBER event');
-                        dragginType = "name"
-                        map.on('mousemove', onMoveName);
-                        map.once('mouseup', onUpName);
-                    });
+                    // map.on('mousedown', layerID, (e) => {
+                    //     // Prevent the default map drag behavior.
+                    //     movableLayerID = id
+                    //     e.preventDefault();
+                    //     canvas.style.cursor = 'grab';
+                    //     console.log('MOVING NUMBER event');
+                    //     dragginType = "name"
+                    //     map.on('mousemove', onMoveName);
+                    //     map.once('mouseup', onUpName);
+                    // });
 
-                    map.on('touchstart', layerID, (e) => {
-                        if (e.points.length !== 1) return;
-                        // Prevent the default map drag behavior.
-                        e.preventDefault();
-                        map.on('touchmove', onMoveName);
-                        map.once('touchend', onUpName);
-                    });
+                    // map.on('touchstart', layerID, (e) => {
+                    //     if (e.points.length !== 1) return;
+                    //     // Prevent the default map drag behavior.
+                    //     e.preventDefault();
+                    //     map.on('touchmove', onMoveName);
+                    //     map.once('touchend', onUpName);
+                    // });
                 }
             }
 
@@ -1209,80 +1208,80 @@
                 }
             })
 
-            map.on('click', (e) => {
+            // map.on('click', (e) => {
 
-                console.log('draw.getMode()', draw.getMode());
-                if (draw.getMode() === draw.modes.DRAW_POLYGON) {
-                    drawPolygonMode = true
-                    return
-                }
+            //     console.log('draw.getMode()', draw.getMode());
+            //     if (draw.getMode() === draw.modes.DRAW_POLYGON) {
+            //         drawPolygonMode = true
+            //         return
+            //     }
 
-            })
+            // })
 
-            map.on("draw.update", (e) => {
-                console.log('DRAW UPDATE!!!',);
-                const mode = draw.getMode()
-                const selectedGeometry = draw.getSelected()
-                console.log('geometry', selectedGeometry);
-                const id = selectedGeometry.features[0].id
+            // map.on("draw.update", (e) => {
+            //     console.log('DRAW UPDATE!!!',);
+            //     const mode = draw.getMode()
+            //     const selectedGeometry = draw.getSelected()
+            //     console.log('geometry', selectedGeometry);
+            //     const id = selectedGeometry.features[0].id
 
-                const item = polys.getItem(id)
-                if (item) {
-                    console.log(id, "geom====>", selectedGeometry);
-                    const updatedGeometry = selectedGeometry.type === "FeatureCollection" ? selectedGeometry.features[0] : selectedGeometry
-                    updateProp(id, "geom", updatedGeometry)
-                } else {
-                    console.error("no item found")
-                }
-            })
+            //     const item = polys.getItem(id)
+            //     if (item) {
+            //         console.log(id, "geom====>", selectedGeometry);
+            //         const updatedGeometry = selectedGeometry.type === "FeatureCollection" ? selectedGeometry.features[0] : selectedGeometry
+            //         updateProp(id, "geom", updatedGeometry)
+            //     } else {
+            //         console.error("no item found")
+            //     }
+            // })
 
-            map.on("draw.selectionchange", (e) => {
-                console.log('draw.selectionchange',);
-            })
+            // map.on("draw.selectionchange", (e) => {
+            //     console.log('draw.selectionchange',);
+            // })
 
-            map.on("draw.modechange", (e) => {
-                console.log('draw.modechange', draw.getMode());
-                console.log('draw.modechange', draw.getSelected());
+            // map.on("draw.modechange", (e) => {
+            //     console.log('draw.modechange', draw.getMode());
+            //     console.log('draw.modechange', draw.getSelected());
 
-                if (drawPolygonMode) {
+            //     if (drawPolygonMode) {
 
-                    drawPolygonMode = false;
+            //         drawPolygonMode = false;
 
-                    const coordinates = draw.getSelected().features[0].geometry.coordinates
-                    console.log('draw.getSelected()', draw.getSelected());
+            //         const coordinates = draw.getSelected().features[0].geometry.coordinates
+            //         console.log('draw.getSelected()', draw.getSelected());
 
-                    const layerId = draw.getSelected().features[0].id
-                    const polygon = draw.getSelected().features[0]
-                    const center = turf.centerOfMass(polygon)
-                    const [lng, lat] = turf.getCoords(center)
-                    const numberPosition = draw.getSelected().features[0].geometry.coordinates[0][0]
+            //         const layerId = draw.getSelected().features[0].id
+            //         const polygon = draw.getSelected().features[0]
+            //         const center = turf.centerOfMass(polygon)
+            //         const [lng, lat] = turf.getCoords(center)
+            //         const numberPosition = draw.getSelected().features[0].geometry.coordinates[0][0]
 
-                    polys.addItem({
-                        id: layerId,
-                        //obj: geometryObj,
-                        geom: polygon,
+            //         polys.addItem({
+            //             id: layerId,
+            //             //obj: geometryObj,
+            //             geom: polygon,
 
-                        name: "Tesco or Unit 1",
-                        namePosition: [lng, lat],
-                        nameAngle: 0,
-                        showName: 'visible',
+            //             name: "Tesco or Unit 1",
+            //             namePosition: [lng, lat],
+            //             nameAngle: 0,
+            //             showName: 'visible',
 
-                        number: "Size or unit #",
-                        numberPosition: numberPosition,
-                        numberAngle: 0,
-                        showNumber: 'visible',
+            //             number: "Size or unit #",
+            //             numberPosition: numberPosition,
+            //             numberAngle: 0,
+            //             showNumber: 'visible',
 
-                        // imageUrl: "img/logos/dummy_icon.png",
-                        imageUrl: "",
-                        imagePosition: [lng, lat],
-                        imageSize: 5,
-                        imageAngle: 0,
+            //             // imageUrl: "img/logos/dummy_icon.png",
+            //             imageUrl: "",
+            //             imagePosition: [lng, lat],
+            //             imageSize: 5,
+            //             imageAngle: 0,
 
-                        fillColor: "#0080ff",
-                        opacity: 0.5,
-                    })
-                }
-            })
+            //             fillColor: "#0080ff",
+            //             opacity: 0.5,
+            //         })
+            //     }
+            // })
 
         })
 
@@ -1293,20 +1292,14 @@
 
         function generateLegend() {
 
-            console.log('generateLegend', mainData.currentProject);
+            console.log('generateLegend');
 
             const div = document.createElement("div")
             div.className = "legend"
 
             const title = document.createElement(`table`)
             title.className = "legend-table"
-            title.innerHTML = `<tr><th></th>
-                <th>Size</th>
-                <th>Name</th>
-                <th>Recent Planning</th>
-                <th>Letter Sent</th>
-                <th>Notes</th>
-            </tr>`
+            title.innerHTML = `<tr><th></th><th>Size</th><th>Name</th></tr>`
 
 
             //add div to dom
@@ -1316,7 +1309,7 @@
                         return a.number - b.number
                     })
                     .map(p => {
-                        console.log('p', p);
+
                         return title.appendChild(createItem(p))
                     })
                 // title.replaceChildren(...items)
@@ -1332,18 +1325,9 @@
             function createItem(data) {
                 const container = document.createElement("tr")
 
-                const planningInput = data.planningInput || "-"
-                const letterSentInput = data.letterSentInput || "-"
-                const notesInput = data.notesInput || "-"
-
-                container.innerHTML = `<td><div class="legend-circle" style="background-color:${data.fillColor}"></div></td>
-                <td>${data.number}</td>
-                <td>${data.name}</td>
-                <td>${planningInput}</td>
-                <td>${letterSentInput}</td>
-                <td>${notesInput}</td>
-                
-                `
+                // item.className = "legend-item"
+                // item.innerHTML = `<div>${data.number}</div><div>${data.name}</div>`
+                container.innerHTML = `<td><div class="legend-circle" style="background-color:${data.fillColor}"></div></td><td>${data.number}</td><td>${data.name}</td>`
 
                 container.addEventListener("click", () => {
                     map.fitBounds(turf.bbox(data.geom), {
@@ -1388,14 +1372,9 @@
                 polygon = geometry.features[0]
             }
 
-            console.log('props', props);
             const color = props.fillColor || "#0080ff"
             const name = props.name || ""
             const number = props.number || ""
-            const planningValue = props.planningInput || ""
-            const letterSentValue = props.letterSentInput || ""
-            const notesValue = props.notesInput || ""
-
             const image = "https://nikolsky.com.ua/wp-content/uploads/2021/02/house.png" || ""
 
             const div = document.createElement("div")
@@ -1475,60 +1454,6 @@
             nameBlock.appendChild(showNameDiv)
             nameBlock.appendChild(nameBlockFlexContainer)
 
-            //------------Recent Planning ------ // 
-            const planningTitle = document.createElement("h5")
-            planningTitle.innerText = "Recent Planning"
-
-            const planningBlockFlexContainer = document.createElement("div")
-            planningBlockFlexContainer.classplanning = "flex-container"
-
-            const planningBlock = document.createElement("div")
-            planningBlock.className = "block-wrapper"
-
-            const planningInput = document.createElement("input")
-            planningInput.placeholder = "Link"
-            planningInput.value = planningValue
-            planningInput.addEventListener("input", e => {
-                const value = e.target.value
-                updateProp(id, "planningInput", value)
-            })
-
-            //Letter Sent 
-            const letterSentBlock = document.createElement("div")
-            const letterSentTitle = document.createElement("h5")
-            letterSentTitle.innerText = "Letter Sent"
-            const letterSentInput = document.createElement("input")
-            letterSentInput.placeholder = "Letter Sent"
-            letterSentInput.value = letterSentValue
-            letterSentInput.addEventListener("input", e => {
-                const value = e.target.value
-                updateProp(id, "letterSentInput", value)
-            })
-            letterSentBlock.appendChild(letterSentTitle)
-            letterSentBlock.appendChild(letterSentInput)
-
-            //Letter Sent 
-            const notesBlock = document.createElement("div")
-            const notesTitle = document.createElement("h5")
-            notesTitle.innerText = "Notes"
-            const notesInput = document.createElement("input")
-            notesInput.placeholder = "Notes"
-            notesInput.value = notesValue
-            notesInput.addEventListener("input", e => {
-                const value = e.target.value
-                updateProp(id, "notesInput", value)
-            })
-            notesBlock.appendChild(notesTitle)
-            notesBlock.appendChild(notesInput)
-
-            planningBlock.appendChild(planningTitle)
-            planningBlock.appendChild(planningInput)
-            planningBlock.appendChild(planningBlockFlexContainer)
-
-            planningBlock.appendChild(letterSentBlock)
-            planningBlock.appendChild(notesBlock)
-
-
             //NUMBER
             const numberBlockFlexContainer = document.createElement("div")
             numberBlockFlexContainer.className = "flex-container"
@@ -1606,7 +1531,7 @@
                     formData.append('image', file);
 
                     try {
-                        const response = await fetch(apiURL + 'upload.php', {
+                        const response = await fetch(apiURL + '/upload.php', {
                             method: 'POST',
                             body: formData
                         });
@@ -1701,7 +1626,6 @@
             div.appendChild(colorText)
             div.appendChild(colorInput)
             div.appendChild(nameBlock)
-            div.appendChild(planningBlock)
             div.appendChild(numberBlock)
             div.appendChild(fileBlock)
 
@@ -1712,6 +1636,8 @@
 
         function updateArea() {
             const geometry = draw.getSelected()
+            draw.changeMode(draw.modes.SIMPLE_SELECT)
+
             const area = turf.area(geometry);
             const length = turf.length(geometry, { units: 'kilometers' });
             const data = `
@@ -1747,14 +1673,13 @@
 
             if (mainData.currentProject && mainData.currentProject.polygon_id) {
 
-                fetch(apiURL + "api.php", {
+                fetch(apiURL + "/api.php", {
                     method: "POST",
                     body: JSON.stringify({
                         polygon_id: mainData.currentProject.polygon_id,
                         uid: localStorage.token,
                         data: JSON.stringify(polys.getAll()),
-                        action: "save-project",
-                        owner: mainData.currentProject.owner
+                        action: "save-project"
                     })
                 }).then(res => res.json())
                     .then(res => {
@@ -1781,34 +1706,7 @@
             const errorMessage = document.createElement("div")
             errorMessage.className = "error-message"
 
-            const saveButton = document.createElement("button")
-            saveButton.disabled = !localStorage.token ? true : false
-            saveButton.innerText = "Save"
-            saveButton.addEventListener("click", () => {
-                fetch(apiURL + "api.php", {
-                    method: "POST",
-                    body: JSON.stringify({
-                        projectName: projectName.value,
-                        uid: localStorage.token,
-                        data: JSON.stringify(polys.getAll()),
-                        action: "save"
-                    })
-                }).then(res => res.json())
-                    .then(res => {
-                        console.log('res', res);
-                        if (res.success === false) {
-                            errorMessage.textContent = res.message
-                        } else {
-                            //success
-                            //save token to localstorage
-                            div.remove()
-                            mainData.currentProject = {
-                                polygon_id: res.polygon_id,
-                                name: projectName.value,
-                            }
-                        }
-                    })
-            })
+
 
             // const projectsList = document.createElement("div")
             // projectsList.className = "projects-list"
@@ -1896,7 +1794,7 @@
                 }
 
                 //fetch this data to server
-                fetch(apiURL + "register.php", {
+                fetch(apiURL + "/register.php", {
                     method: "POST",
                     body: JSON.stringify({
                         email: email.value,
@@ -1939,7 +1837,7 @@
                 }
 
                 //fetch this data to server
-                fetch(apiURL + "register.php", {
+                fetch(apiURL + "/register.php", {
                     method: "POST",
                     body: JSON.stringify({
                         email: email.value,
@@ -1980,7 +1878,7 @@
                 }
 
                 //fetch this data to server
-                fetch(apiURL + "new_password.php", {
+                fetch(apiURL + "/new_password.php", {
                     method: "POST",
                     body: JSON.stringify({
                         email: email.value,
@@ -2015,29 +1913,20 @@
 
         function loadDataForm() {
 
-            const div = document.createElement("div")
-            div.className = "load-data-form"
-            div.innerHTML = "<center><h3>Your Maps</h3></center>"
-
-            //add close X at the top right corner
-            const close = document.createElement("div")
-            close.className = "close-button"
-            close.addEventListener("click", () => {
-                div.remove()
-            })
-            div.appendChild(close)
+            const div = document.getElementById("projects")
+            // div.className = "load-data-form"
+            // div.innerHTML = "<center><h3>Your Maps</h3></center>"
 
 
-            fetch(apiURL + "api.php", {
+            fetch(apiURL + "/api.php", {
                 method: "POST",
                 body: JSON.stringify({
-                    uid: localStorage.token,
-                    action: "load"
+                    owner: UID,
+                    action: "load_by_owner"
                 })
             }).then(res => res.json())
                 .then(res => {
                     console.log('res', res);
-                    document.body.appendChild(div)
                     if (res && res.data) {
                         res.data.map(project => {
                             div.appendChild(loadProject(project))
@@ -2046,7 +1935,7 @@
                 })
 
             function loadProject(project) {
-                console.log('project!!!!!!!!!!!!!!!!!!!', project);
+                console.log('project', project);
                 mainData.currentProject = project
 
                 const projectName = document.createElement("div")
@@ -2054,22 +1943,19 @@
                 projectName.className = "load-data-form-item"
                 projectName.addEventListener("click", () => {
 
-                    mainData.currentProject = project
-
                     //remove prev project
                     polys.deleteProject()
 
                     const data = JSON.parse(project.data)
-                    console.log('data--->>>>', data, project);
-
+                    console.log('data', data);
                     data.forEach(item => {
                         polys.addItem(item)
                         polys.updateLayer(item.id, true)
                     })
-                    div.remove()
-                    generateLegend()
 
-                    polys.saveToHistory()//add polys to history 
+                    // div.remove()
+                    // generateLegend()
+                    // polys.saveToHistory()//add polys to history 
 
                     //fit geometry 
                     const collection = turf.featureCollection(data.map(d => {
@@ -2079,19 +1965,6 @@
                     map && map.fitBounds(turf.bbox(collection), {
                         padding: 200
                     })
-
-                    //check the owner from drop down 
-                    const owners = document.querySelectorAll("#owner option")
-                    if (project.owner) {
-                        owners.forEach(owner => {
-                            if (owner.value === project.owner) {
-                                owner.selected = true
-                            }
-                        })
-                    } else {
-                        owners[0].selected = true
-                    }
-
                 })
                 return projectName
             }
@@ -2130,48 +2003,20 @@
                 loadDataForm()
             })
 
-            const ownerDropDownDiv = document.createElement("div");
-            const ownerDropDown = document.createElement("select");
-            ownerDropDown.id = "owner";
-            ownerDropDown.className = "owner-dropdown";
-            ownerDropDown.innerHTML = `
-                <option value="" disabled selected>Select an owner</option>
-                <option value="ABC Land">ABC Land</option>
-                <option value="British Land">British Land</option>
-                <option value="TEST">TEST</option>
-            `;
-
-            ownerDropDown.addEventListener("change", e => {
-                console.log('e.target.value', e.target.value);
-                mainData.currentProject.owner = e.target.value
-            })
-            ownerDropDownDiv.appendChild(ownerDropDown)
-
 
             userInfo.appendChild(userEmail)
-
 
             adminTools.appendChild(saveProjectButton)
             adminTools.appendChild(loadProjectButton)
             adminTools.appendChild(loggOutButton)
-            adminTools.appendChild(ownerDropDownDiv)
             userDiv.appendChild(userInfo)
-
-
-            const link = document.createElement("a")
-            link.href = location.protocol + '//' + location.host + `/index-v23-link.html` + "?id=" + localStorage.token
-            link.innerText = "Project link"
-            link.className = "share-link"
-            link.target = "_blank"
-
-            userInfo.appendChild(link)
-
         }
 
-        if (!localStorage.token || localStorage.token === "") {
+        if (!UID || UID === "") {
             generateRegisterForm()
         } else {
-            generateUserInfo()
+            // generateUserInfo()
+            loadDataForm()
         }
 
 
