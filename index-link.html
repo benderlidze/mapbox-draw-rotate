@@ -492,7 +492,8 @@
     <script>
 
         const urlObject = new URL(window.location.href);
-        const UID = urlObject.searchParams.get("id")
+        const id = urlObject.searchParams.get("id")
+        const UID = id.replace(/-/g, " ")//convert - to space
 
         const apiURL = `https://mistyrose-yak-266010.hostingersite.com/drawingToolUpload/`
 
