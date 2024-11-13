@@ -779,8 +779,10 @@
             map.addSource("hillshade", {
                 type: "raster",
                 tiles: [
-                    "https://khms1.googleapis.com/kh?v=946&hl=en&x={x}&y={y}&z={z}",
-                    "https://khms0.googleapis.com/kh?v=946&hl=en&x={x}&y={y}&z={z}",
+                    // "https://khms1.googleapis.com/kh?v=946&hl=en&x={x}&y={y}&z={z}",
+                    // "https://khms0.googleapis.com/kh?v=946&hl=en&x={x}&y={y}&z={z}",
+                    //add mapbox satellite
+                    "https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.webp?access_token=pk.eyJ1Ijoic2VyZ2JlciIsImEiOiJja3dwOWgzeGQwYWdyMm9xb2pkMDFvYmNuIn0.H9AJ_NLmDNYMed6dvu_Q0A"
                 ]
             });
 

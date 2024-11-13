@@ -593,6 +593,19 @@
                 fillColor: "brown",
                 backgroundImage: "img/padelx2.png",
             },
+            {
+                categoryName: "Padel",
+                name: "Pickleball Courts (x2)",
+                geometry: [[
+                    { "x": 474, "y": 630 },
+                    { "x": 630, "y": 630 },
+                    { "x": 630, "y": 794 },
+                    { "x": 474, "y": 794 },
+                    { "x": 474, "y": 630 }
+                ]],
+                fillColor: "brown",
+                backgroundImage: "img/pickleball.png",
+            },
         ]
 
         let prevCategoryName = "";
@@ -635,7 +648,8 @@
         const map = new mapboxgl.Map({
             container: 'map', // container ID
             // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
-            style: 'mapbox://styles/mapbox/light-v9', // style URL
+            // style: 'mapbox://styles/mapbox/light-v9', // style URL
+            style: 'mapbox://styles/mapbox/satellite-v9', // style URL
             center: { lng: -2.3557848895820825, lat: 53.43698508344528 },
             zoom: 6, // starting zoom
             preserveDrawingBuffer: true,
@@ -762,6 +776,7 @@
                 tiles: [
                     "https://khms1.googleapis.com/kh?v=946&hl=en&x={x}&y={y}&z={z}",
                     "https://khms0.googleapis.com/kh?v=946&hl=en&x={x}&y={y}&z={z}",
+
                 ]
             });
 
@@ -905,11 +920,11 @@
             })
             console.log('history', history);
 
-            
+
             historyDiv.innerHTML = ""
         }
 
-        function setHistory(id){
+        function setHistory(id) {
 
             const data = history[id].data
             mainData.layers.forEach(d => {
